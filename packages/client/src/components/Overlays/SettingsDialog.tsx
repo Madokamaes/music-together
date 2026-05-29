@@ -29,6 +29,7 @@ interface SettingsDialogProps {
     audioQuality?: import('@music-together/shared').AudioQuality
   }) => void
   onSetUserRole?: (userId: string, role: 'admin' | 'member') => void
+  onDeleteRoom?: () => void
   initialTab?: SettingsTab
 }
 
@@ -84,6 +85,7 @@ export function SettingsDialog({
   onOpenChange,
   onUpdateSettings,
   onSetUserRole,
+  onDeleteRoom,
   initialTab,
 }: SettingsDialogProps) {
   const [tab, setTab] = useState<SettingsTab>('room')
@@ -142,7 +144,7 @@ export function SettingsDialog({
           ) : (
             <ScrollArea className="min-h-0 flex-1">
               <div className="p-4 sm:p-6">
-                {tab === 'room' && <RoomSettingsSection onUpdateSettings={onUpdateSettings} />}
+                {tab === 'room' && <RoomSettingsSection onUpdateSettings={onUpdateSettings} onDeleteRoom={onDeleteRoom} />}
                 {tab === 'members' && <MembersSection onSetUserRole={onSetUserRole} />}
                 {tab === 'lyrics' && <LyricsSection />}
                 {tab === 'appearance' && <AppearanceSection />}

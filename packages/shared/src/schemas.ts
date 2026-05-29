@@ -31,6 +31,10 @@ export const setRoleSchema = z.object({
   role: z.enum(['admin', 'member']),
 })
 
+export const userProfileUpdateSchema = z.object({
+  nickname: z.string().min(1, '昵称不能为空').max(LIMITS.NICKNAME_MAX_LENGTH, '昵称过长').optional(),
+})
+
 // ---------------------------------------------------------------------------
 // Room — auto fallback notifications
 // ---------------------------------------------------------------------------

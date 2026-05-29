@@ -97,6 +97,8 @@ export const storage = {
 
   getNickname: () => safeGet('nickname') ?? '',
   setNickname: (v: string) => safeSet('nickname', v),
+  getAvatarUrl: () => safeGet('avatarUrl') ?? '',
+  setAvatarUrl: (v: string) => (v ? safeSet('avatarUrl', v) : safeRemove('avatarUrl')),
 
   getVolume: () => {
     const vol = safeFloat('volume', 0.8)

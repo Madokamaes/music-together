@@ -1,6 +1,7 @@
 import { getSocket, type TypedSocket } from '@/lib/socket'
 import { SERVER_URL } from '@/lib/config'
 import { storage } from '@/lib/storage'
+import { fetchMyProfile } from '@/lib/profileApi'
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { toast } from 'sonner'
 
@@ -56,6 +57,9 @@ export function SocketProvider({ children }: { children: ReactNode }) {
         const userId = res.headers.get('X-Identity-UserId') ?? res.headers.get('x-identity-userid')
         if (userId && userId.trim().length > 0) {
           storage.setUserId(userId.trim())
+          const profile = await fetchMyProfile().catch(() => null)
+          if (profile?.nickname) storage.setNickname(profile.nickname)
+          storage.setAvatarUrl(profile?.avatarUrl ?? '')
         } else {
           storage.clearUserId()
         }

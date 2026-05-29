@@ -37,13 +37,14 @@ interface RoomCheckInfo {
   name: string
   hasPassword: boolean
   userCount: number
+  memberCount?: number
 }
 
 export default function RoomPage() {
   const { roomId } = useParams<{ roomId: string }>()
   const navigate = useNavigate()
   const { socket, isConnected } = useSocketContext()
-  const { leaveRoom, updateSettings, setUserRole } = useRoom()
+  const { leaveRoom, updateSettings, setUserRole, deleteRoom } = useRoom()
   const { play, pause, seek, next, prev } = usePlayer()
   const { addTrack, insertAfterCurrent, removeTrack, reorderTracks, clearQueue } = useQueue()
 
@@ -116,6 +117,7 @@ export default function RoomPage() {
           name: data.name,
           hasPassword: data.hasPassword,
           userCount: data.userCount,
+          memberCount: data.memberCount,
         })
       } catch (err) {
         if (cancelled) return
@@ -367,6 +369,7 @@ export default function RoomPage() {
             }}
             onUpdateSettings={updateSettings}
             onSetUserRole={setUserRole}
+            onDeleteRoom={deleteRoom}
             initialTab={settingsInitialTab}
           />
         </div>

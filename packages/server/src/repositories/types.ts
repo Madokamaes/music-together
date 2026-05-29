@@ -1,4 +1,4 @@
-import type { AudioQuality, ChatMessage, PlayMode, PlayState, RoomListItem, Track, User } from '@music-together/shared'
+import type { AudioQuality, ChatMessage, PlayMode, PlayState, RoomListItem, RoomMember, Track, User } from '@music-together/shared'
 
 /** 服务端内部房间数据模型 -- 含密码（永远不发送给客户端） */
 export interface RoomData {
@@ -12,6 +12,7 @@ export interface RoomData {
   adminUserIds: Set<string>
   audioQuality: AudioQuality
   users: User[]
+  members: RoomMember[]
   queue: Track[]
   currentTrack: Track | null
   playState: PlayState
@@ -26,6 +27,7 @@ export interface SocketMapping {
 export interface RoomRepository {
   get(roomId: string): RoomData | undefined
   set(roomId: string, room: RoomData): void
+  load(rooms: RoomData[]): void
   delete(roomId: string): void
   getAll(): ReadonlyMap<string, RoomData>
   getAllIds(): string[]
@@ -37,6 +39,8 @@ export interface RoomRepository {
   hasOtherSocketForUser(roomId: string, userId: string, excludeSocketId: string): boolean
   /** 根据 roomId + userId 查找对应的 socketId（用于定向发送） */
   getSocketIdForUser(roomId: string, userId: string): string | null
+  /** Return all active socket ids in a room. */
+  getSocketIdsForRoom(roomId: string): string[]
   /** Store a smoothed RTT measurement for a given socket */
   setSocketRTT(socketId: string, rttMs: number): void
   /** Retrieve the current smoothed RTT for a socket (default 0) */

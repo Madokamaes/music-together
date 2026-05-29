@@ -7,6 +7,7 @@ export function createMessage(roomId: string, user: User, content: string): Chat
     id: crypto.randomUUID(),
     userId: user.id,
     nickname: user.nickname,
+    avatarUrl: user.avatarUrl ?? null,
     content: content.trim(),
     timestamp: Date.now(),
     type: 'user',

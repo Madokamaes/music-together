@@ -8,6 +8,7 @@
 Docker 容器 (:3001)
 ├── / 静态文件        → client/dist（Vite 产物）
 ├── /api/*           → REST API
+├── /uploads/avatars → 上传头像静态文件（来自 /app/data/avatars）
 └── /socket.io/*     → WebSocket
 ```
 
@@ -24,6 +25,16 @@ Docker 容器 (:3001)
 - **阶段 2（build）**：分别构建 shared、server（tsc）、client（vite build）
 - **阶段 3（production）**：仅安装 server 生产依赖（`--filter @music-together/server...`），复制构建产物
 
+## 持久化数据
+
+房间、成员、聊天、用户资料、头像和听歌统计保存在 SQLite 与 `/app/data` 目录下：
+
+- `DATA_DIR=/app/data`
+- `DATABASE_PATH=/app/data/music-together.sqlite`（默认）
+- `AVATAR_DIR=/app/data/avatars`（默认）
+
+生产容器必须挂载 Docker volume 到 `/app/data`，否则 `docker rm -f` 或 Watchtower 重建容器会删除数据库和头像文件。备份时同时备份 SQLite 数据库文件、WAL/SHM 文件和 `avatars/` 目录。
+
 ## CORS 策略
 
 - `CLIENT_URL` 未设置 → 自动模式，允许所有来源访问（适用于单镜像同域部署、局域网、公网反代）
@@ -31,6 +42,8 @@ Docker 容器 (:3001)
 
 ## Identity Cookie 策略
 
+- 生产环境必须固定 `IDENTITY_SECRET`；更换密钥会让现有用户身份 cookie 失效，导致用户资料与房间成员身份无法自动匹配
+- 部署脚本会读取服务器上的 `/opt/music-together/.env`（如果存在），建议在该文件中配置 `IDENTITY_SECRET`
 - 未显式设置 `IDENTITY_COOKIE_SECURE` 时，服务端会根据当前请求协议自动决定是否添加 `Secure`
 - 局域网 HTTP 访问会下发非 Secure cookie
 - 公网 HTTPS / 反代 HTTPS 访问会下发 Secure cookie
@@ -51,8 +64,16 @@ Docker 容器 (:3001)
 ## 服务器部署命令
 
 ```bash
+# 创建持久化数据卷
+docker volume create music-together-data
+
 # 启动应用容器
-docker run -d --name music-together --restart unless-stopped -p 3001:3001 ghcr.io/<owner>/music-together:latest
+docker run -d --name music-together --restart unless-stopped \
+  -p 3001:3001 \
+  --env-file /opt/music-together/.env \
+  -e DATA_DIR=/app/data \
+  -v music-together-data:/app/data \
+  ghcr.io/<owner>/music-together:latest
 
 # 启动 Watchtower 自动更新
 docker run -d --name watchtower --restart unless-stopped \

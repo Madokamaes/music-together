@@ -31,17 +31,18 @@ src/
 │
 ├── components/                 # UI 组件
 │   ├── Chat/
-│   │   ├── ChatMessage.tsx     #     单条消息（用户/系统）
+│   │   ├── ChatMessage.tsx     #     单条消息（用户/系统，含头像快照）
 │   │   └── ChatPanel.tsx       #     聊天面板（消息列表 + 输入框）
 │   ├── Lobby/
 │   │   ├── CreateRoomDialog.tsx #    创建房间弹窗
 │   │   ├── NicknameDialog.tsx  #     设置昵称弹窗
 │   │   ├── PasswordDialog.tsx  #     输入房间密码弹窗
 │   │   ├── RoomCard.tsx        #     房间列表卡片
-│   │   ├── UserPopover.tsx     #     用户信息气泡
+│   │   ├── UserPopover.tsx     #     用户信息气泡（持久化昵称 + 头像上传/重置）
 │   │   ├── HeroSection.tsx     #     首页 Hero 标题区域
 │   │   ├── ActionCards.tsx     #     创建/加入房间卡片
 │   │   └── RoomListSection.tsx #     活跃房间列表区域
+│   ├── UserAvatar.tsx           #   应用用户头像（上传头像 + 默认渐变 fallback + 在线状态点）
 │   ├── TrackListItem.tsx        #   共享曲目行渲染（序号+封面+标题VIP+歌手可点击+时长+isAdded 添加按钮，memo 优化）
 │   ├── VirtualTrackList.tsx     #   共享虚拟滚动曲目列表（@tanstack/react-virtual + 无限加载 + skeleton + 空态，forwardRef 暴露 scrollToTop）
 │   ├── Overlays/
@@ -125,7 +126,7 @@ src/
 │
 ├── stores/                     # Zustand 状态仓库
 │   ├── playerStore.ts          #   播放状态（currentTrack, isPlaying, volume 等）
-│   ├── roomStore.ts            #   房间状态（room, currentUser, users）
+│   ├── roomStore.ts            #   房间状态（room, currentUser, 在线 users 与持久成员 members）
 │   ├── chatStore.ts            #   聊天（messages, unreadCount, isChatOpen）
 │   ├── lobbyStore.ts           #   大厅（rooms 列表, isLoading）
 │   └── settingsStore.ts        #   设置（歌词参数、背景参数，持久化到 localStorage）
@@ -140,7 +141,8 @@ src/
     ├── clockSync.ts            #   NTP 时钟同步引擎（采样、offset 计算、getServerTime）
     ├── resetStores.ts          #   全局 store 重置工具
     ├── socket.ts               #   Socket.IO 客户端实例
-    ├── storage.ts              #   localStorage 封装（带类型校验）
+    ├── storage.ts              #   localStorage 封装（带类型校验，缓存身份/昵称/头像 URL）
+    ├── profileApi.ts           #   当前应用用户资料 REST API（昵称、头像上传/重置）
     ├── platform.ts             #   平台常量（PLATFORM_LABELS / PLATFORM_SHORT_LABELS / PLATFORM_COLORS / VIP_LABELS / 状态查找函数）
     ├── format.ts               #   格式化工具（时间、文本等）
     ├── audioUnlock.ts          #   浏览器音频自动播放解锁
@@ -152,7 +154,7 @@ src/
 ```
 src/
 ├── index.ts                    # 入口：Express + HTTP + Socket.IO 服务启动与优雅关闭
-├── config.ts                   # 环境变量配置（PORT, CLIENT_URL, CORS）
+├── config.ts                   # 环境变量配置（PORT, CLIENT_URL, CORS, DATA_DIR, DATABASE_PATH, AVATAR_DIR）
 │
 ├── controllers/                # 控制器：注册 Socket 事件处理器（薄编排层，不含业务逻辑）
 │   ├── index.ts                #   统一注册入口
@@ -165,8 +167,8 @@ src/
 │   └── playlistController.ts   #   歌单管理（获取用户歌单列表 via Socket，使用 getUserCookie 取请求者自己的 cookie，歌单私有）
 │
 ├── services/                   # 服务层：业务逻辑
-│   ├── roomService.ts          #   房间 CRUD + 角色管理 + 加入校验（validateJoinRequest）
-│   ├── roomLifecycleService.ts #   房间生命周期定时器（空置删除）+ 防抖广播
+│   ├── roomService.ts          #   房间 CRUD + 角色管理 + 加入校验 + SQLite 启动恢复
+│   ├── roomLifecycleService.ts #   房间销毁清理 + 防抖广播
 │   ├── playerService.ts        #   播放状态管理 + 流 URL 解析 + 切歌防抖 + 加入播放同步
 │   ├── queueService.ts         #   队列操作（reorder 保留未包含曲目防丢歌，getNextTrack 支持 4 种播放模式，clearQueue 清空，addBatchTracks 批量添加）
 │   ├── chatService.ts          #   聊天消息处理 + HTML 转义（含系统消息）
@@ -179,10 +181,17 @@ src/
 │   ├── tencentAuthService.ts  #   QQ 音乐认证（5 步 OAuth QR 扫码登录：ptqrshow/ptqrlogin/check_sig/authorize/QQLogin 换取 musickey；zzc 签名防风控；getUserInfo 获取昵称 + VIP 状态；getUserPlaylists 获取自建 + 收藏歌单；getPlaylistTracks 分页获取歌单歌曲）
 │   └── voteService.ts          #   投票状态管理
 │
-├── repositories/               # 数据仓库：内存存储
+├── repositories/               # 数据仓库：内存实时状态 + SQLite 写入/读取
 │   ├── types.ts                #   接口定义（RoomRepository, ChatRepository）
 │   ├── roomRepository.ts       #   房间数据 + Socket 映射 + per-socket RTT + roomToSockets 反向索引（Map<string, RoomData>）
-│   └── chatRepository.ts       #   聊天记录（Map<string, ChatMessage[]>）
+│   ├── chatRepository.ts       #   聊天记录（内存缓存 + SQLite 历史）
+│   ├── userRepository.ts       #   Cookie 身份对应的持久用户资料与头像 URL
+│   ├── persistentRoomRepository.ts # SQLite 房间/成员/队列/播放状态持久化与启动恢复
+│   └── listeningStatsRepository.ts # 播放开始事件与在线用户快照统计
+│
+├── persistence/                 # SQLite 初始化与迁移
+│   ├── database.ts              #   数据库文件/头像目录初始化、WAL、foreign_keys、busy_timeout
+│   └── migrations.ts            #   users/rooms/members/chat/listening stats 表结构迁移
 │
 ├── middleware/                  # Socket.IO 中间件
 │   ├── types.ts                #   TypedServer, TypedSocket, HandlerContext
@@ -192,7 +201,8 @@ src/
 │
 ├── routes/                     # Express REST 路由
 │   ├── music.ts                #   GET /api/music/search|url|lyric|cover|playlist|ttml（统一 validated() 路由包装器消除重复 try/catch + Zod 模式）
-│   └── rooms.ts                #   GET /api/rooms/:roomId/check（房间预检）
+│   ├── rooms.ts                #   GET /api/rooms/:roomId/check（房间预检）
+│   └── users.ts                #   GET/PATCH /api/users/me + 头像上传/重置
 │
 ├── types/
 │   └── meting.d.ts             #   @meting/core 类型声明

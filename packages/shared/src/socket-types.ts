@@ -25,6 +25,7 @@ export interface ServerToClientEvents {
   [EVENTS.ROOM_REJOIN_TOKEN]: (data: { roomId: string; token: string; expiresAt: number }) => void
   [EVENTS.ROOM_ERROR]: (error: { code: string; message: string }) => void
   [EVENTS.ROOM_AUTO_FALLBACK]: (data: RoomAutoFallbackEvent) => void
+  [EVENTS.ROOM_DELETED]: (data: { roomId: string }) => void
   [EVENTS.ROOM_USER_JOINED]: (user: User) => void
   [EVENTS.ROOM_USER_LEFT]: (user: User) => void
   [EVENTS.ROOM_SETTINGS]: (settings: {
@@ -78,6 +79,7 @@ export interface ClientToServerEvents {
   [EVENTS.ROOM_LIST]: () => void
   [EVENTS.ROOM_SETTINGS]: (data: { name?: string; password?: string | null; audioQuality?: AudioQuality }) => void
   [EVENTS.ROOM_SET_ROLE]: (data: { userId: string; role: 'admin' | 'member' }) => void
+  [EVENTS.ROOM_DELETE]: () => void
 
   [EVENTS.PLAYER_PLAY]: (data?: { track?: Track }) => void
   [EVENTS.PLAYER_PAUSE]: () => void

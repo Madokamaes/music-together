@@ -5,6 +5,7 @@ import { checkSocketRateLimit } from '../middleware/socketRateLimiter.js'
 import { roomRepo } from '../repositories/roomRepository.js'
 import * as playerService from '../services/playerService.js'
 import * as roomService from '../services/roomService.js'
+import { persistentRoomRepo } from '../repositories/persistentRoomRepository.js'
 import { estimateCurrentTime } from '../services/syncService.js'
 import { logger } from '../utils/logger.js'
 
@@ -64,6 +65,7 @@ export function registerPlayerController(io: TypedServer, socket: TypedSocket) {
       const parsed = playerSetModeSchema.safeParse(data)
       if (!parsed.success) return
       ctx.room.playMode = parsed.data.mode
+      persistentRoomRepo.persistRoom(ctx.room)
       // Broadcast updated room state so all clients see the new play mode
       ctx.io.to(ctx.roomId).emit(EVENTS.ROOM_STATE, roomService.toPublicRoomState(ctx.room))
       logger.info(`Play mode set to ${parsed.data.mode}`, {
@@ -130,6 +132,7 @@ export function registerPlayerController(io: TypedServer, socket: TypedSocket) {
         currentTime,
         serverTimestamp: timestamp,
       }
+      persistentRoomRepo.persistRoom(room)
     } catch (err) {
       // Sync is best-effort; log but don't emit error to avoid noise
       logger.error('PLAYER_SYNC handler error', err, { socketId: socket.id })

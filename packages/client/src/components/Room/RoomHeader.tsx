@@ -9,6 +9,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { UserAvatar } from '@/components/UserAvatar'
 import { getMedianRTT } from '@/lib/clockSync'
 import { useRoomStore } from '@/stores/roomStore'
 import { useSocketContext } from '@/providers/SocketProvider'
@@ -25,7 +26,9 @@ export function RoomHeader({ onOpenSearch, onOpenSettings, onOpenMembers, onLeav
   // Fine-grained selectors to avoid re-renders from queue/playState changes
   const roomName = useRoomStore((s) => s.room?.name)
   const roomId = useRoomStore((s) => s.room?.id)
-  const userCount = useRoomStore((s) => s.room?.users.length ?? 0)
+  const onlineMembers = useRoomStore((s) => s.room?.members.filter((member) => member.isOnline) ?? [])
+  const onlineCount = useRoomStore((s) => s.room?.onlineCount ?? s.room?.users.length ?? 0)
+  const memberCount = useRoomStore((s) => s.room?.memberCount ?? s.room?.members.length ?? onlineCount)
   const { isConnected } = useSocketContext()
 
   // Poll RTT from clockSync module every 3s
@@ -86,15 +89,27 @@ export function RoomHeader({ onOpenSearch, onOpenSettings, onOpenMembers, onLeav
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-7 gap-1 px-1.5 text-sm text-muted-foreground hover:text-primary"
+                  className="h-8 gap-1 px-1.5 text-sm text-muted-foreground hover:text-primary"
                   onClick={onOpenMembers}
                   aria-label="查看成员"
                 >
-                  <Users className="h-3.5 w-3.5" />
-                  {userCount}
+                  <div className="hidden -space-x-2 sm:flex">
+                    {onlineMembers.slice(0, 3).map((member) => (
+                      <UserAvatar
+                        key={member.id}
+                        nickname={member.nickname}
+                        userId={member.id}
+                        avatarUrl={member.avatarUrl}
+                        size="sm"
+                        className="h-6 w-6 ring-2 ring-background"
+                      />
+                    ))}
+                  </div>
+                  <Users className="h-3.5 w-3.5 sm:hidden" />
+                  <span className="tabular-nums">{onlineCount}/{memberCount}</span>
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>查看成员</TooltipContent>
+              <TooltipContent>查看成员：{onlineCount} 在线 / {memberCount} 成员</TooltipContent>
             </Tooltip>
           </>
         )}

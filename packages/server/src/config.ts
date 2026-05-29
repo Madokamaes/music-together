@@ -2,7 +2,7 @@ import 'dotenv/config'
 import * as z from 'zod/v4'
 import { TIMING } from '@music-together/shared'
 import { readFileSync } from 'node:fs'
-import { resolve, dirname } from 'node:path'
+import { resolve, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -17,6 +17,9 @@ const envSchema = z.object({
   REJOIN_TTL_MS: z.coerce.number().int().positive().default(TIMING.ROOM_GRACE_PERIOD_MS),
   IDENTITY_COOKIE_SECURE: z.enum(['true', 'false']).optional(),
   AUTO_FALLBACK_ENABLED: z.enum(['true', 'false']).default('true'),
+  DATA_DIR: z.string().default(join(process.cwd(), 'data')),
+  DATABASE_PATH: z.string().optional(),
+  AVATAR_DIR: z.string().optional(),
 })
 
 const env = envSchema.parse(process.env)
@@ -24,6 +27,7 @@ const isProd = process.env.NODE_ENV === 'production'
 const explicitOrigins = [env.CLIENT_URL, ...env.CORS_ORIGINS.split(',')]
   .map((origin) => origin.trim())
   .filter(Boolean)
+const dataDir = resolve(env.DATA_DIR)
 
 export const config = {
   version: rootPkg.version as string,
@@ -47,5 +51,10 @@ export const config = {
   },
   autoFallback: {
     enabled: env.AUTO_FALLBACK_ENABLED === 'true',
+  },
+  persistence: {
+    dataDir,
+    databasePath: env.DATABASE_PATH ? resolve(env.DATABASE_PATH) : join(dataDir, 'music-together.sqlite'),
+    avatarDir: env.AVATAR_DIR ? resolve(env.AVATAR_DIR) : join(dataDir, 'avatars'),
   },
 } as const

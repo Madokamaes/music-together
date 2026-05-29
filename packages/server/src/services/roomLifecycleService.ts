@@ -1,7 +1,7 @@
 /**
  * Room Lifecycle Service
  *
- * Manages timers (room deletion) and debounced lobby broadcasts.
+ * Manages destroyed-room cleanup and debounced lobby broadcasts.
  * Extracted from roomService to separate lifecycle/timer concerns from CRUD logic
  * and eliminate the circular dependency (roomService -> playerController -> roomService).
  *
@@ -16,9 +16,7 @@
 
 import type { RoomListItem } from '@music-together/shared'
 import { EVENTS } from '@music-together/shared'
-import { config } from '../config.js'
 import type { TypedServer } from '../middleware/types.js'
-import { chatRepo } from '../repositories/chatRepository.js'
 import { roomRepo } from '../repositories/roomRepository.js'
 import { logger } from '../utils/logger.js'
 import { cleanupRoom as cleanupAuthRoom } from './authService.js'
@@ -30,7 +28,7 @@ import { cleanupRoomRejoinTickets } from './rejoinTicketService.js'
 // Module-level state
 // ---------------------------------------------------------------------------
 
-/** 宽限期定时器：房间变空后延迟删除，给断线用户重连的窗口 */
+/** Legacy deletion timers are only cleared for safety after upgrades from older code paths. */
 const roomDeletionTimers = new Map<string, ReturnType<typeof setTimeout>>()
 
 /** 防抖广播：100ms trailing debounce */
@@ -41,32 +39,6 @@ let pendingIO: TypedServer | null = null
 // Room deletion timer
 // ---------------------------------------------------------------------------
 
-export function scheduleDeletion(roomId: string, io?: TypedServer): void {
-  // Prevent duplicate timers if called multiple times for the same room
-  cancelDeletionTimer(roomId)
-
-  logger.info(
-    `Room ${roomId} is empty, will be deleted in ${config.room.gracePeriodMs / 1000}s unless someone rejoins`,
-    { roomId },
-  )
-  const timer = setTimeout(() => {
-    const r = roomRepo.get(roomId)
-    if (r && r.users.length === 0) {
-      roomRepo.delete(roomId)
-      chatRepo.deleteRoom(roomId)
-      cleanupPlayerRoom(roomId)
-      cleanupVoteRoom(roomId)
-      cleanupAuthRoom(roomId)
-      cleanupRoomRejoinTickets(roomId)
-      roomDeletionTimers.delete(roomId)
-      logger.info(`Room ${roomId} deleted after grace period`, { roomId })
-      // Notify lobby users that the room is gone
-      if (io) broadcastRoomList(io)
-    }
-  }, config.room.gracePeriodMs)
-  roomDeletionTimers.set(roomId, timer)
-}
-
 export function cancelDeletionTimer(roomId: string): void {
   const timer = roomDeletionTimers.get(roomId)
   if (timer) {
@@ -74,6 +46,14 @@ export function cancelDeletionTimer(roomId: string): void {
     roomDeletionTimers.delete(roomId)
     logger.info(`Room ${roomId} deletion cancelled — user rejoined`, { roomId })
   }
+}
+
+export function cleanupDestroyedRoom(roomId: string): void {
+  cancelDeletionTimer(roomId)
+  cleanupPlayerRoom(roomId)
+  cleanupVoteRoom(roomId)
+  cleanupAuthRoom(roomId)
+  cleanupRoomRejoinTickets(roomId)
 }
 
 // ---------------------------------------------------------------------------

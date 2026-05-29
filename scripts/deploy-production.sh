@@ -4,6 +4,8 @@ set -euo pipefail
 image_ref="${1:-}"
 app_port="${2:-3001}"
 container_name="music-together"
+volume_name="music-together-data"
+env_file="/opt/music-together/.env"
 lock_path="/var/lock/music-together-deploy.lock"
 
 if [[ -z "$image_ref" ]]; then
@@ -24,12 +26,21 @@ if ss -lntp | grep -E ":${app_port}\b" | grep -v docker >/dev/null; then
 fi
 
 docker pull "$image_ref"
+docker volume create "$volume_name" >/dev/null
 docker rm -f "$container_name" 2>/dev/null || true
+
+env_args=()
+if [[ -f "$env_file" ]]; then
+  env_args+=(--env-file "$env_file")
+fi
 
 docker run -d \
   --name "$container_name" \
   --restart unless-stopped \
   -p "${app_port}:3001" \
+  -e DATA_DIR=/app/data \
+  -v "${volume_name}:/app/data" \
+  "${env_args[@]}" \
   "$image_ref"
 
 docker ps --filter "name=$container_name"

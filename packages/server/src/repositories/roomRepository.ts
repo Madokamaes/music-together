@@ -17,6 +17,13 @@ export class InMemoryRoomRepository implements RoomRepository {
     this.rooms.set(roomId, room)
   }
 
+  load(rooms: RoomData[]): void {
+    this.rooms.clear()
+    for (const room of rooms) {
+      this.rooms.set(room.id, room)
+    }
+  }
+
   delete(roomId: string): void {
     this.rooms.delete(roomId)
     // Clean up reverse index for the deleted room
@@ -37,6 +44,7 @@ export class InMemoryRoomRepository implements RoomRepository {
       name: room.name,
       hasPassword: room.password !== null,
       userCount: room.users.length,
+      memberCount: room.members.length,
       currentTrackTitle: room.currentTrack?.title ?? null,
       currentTrackArtist: room.currentTrack?.artist.join(', ') ?? null,
     }))
@@ -102,6 +110,10 @@ export class InMemoryRoomRepository implements RoomRepository {
       if (mapping && mapping.userId === userId && mapping.roomId === roomId) return sid
     }
     return null
+  }
+
+  getSocketIdsForRoom(roomId: string): string[] {
+    return Array.from(this.roomToSockets.get(roomId) ?? [])
   }
 
   setSocketRTT(socketId: string, rttMs: number): void {

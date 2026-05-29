@@ -110,7 +110,7 @@ export function registerRoomController(io: TypedServer, socket: TypedSocket) {
         return
       }
 
-      const { room: updatedRoom, user, hostChanged } = result
+      const { room: updatedRoom, user } = result
       const rejoin = issueRejoinTicket(roomId, user.id)
 
       socket.leave('lobby')
@@ -124,10 +124,8 @@ export function registerRoomController(io: TypedServer, socket: TypedSocket) {
         : roomService.toPublicRoomState(updatedRoom)
       socket.emit(EVENTS.ROOM_STATE, stateForJoiner)
 
-      // If conductor changed (owner joined, etc.), broadcast to ALL OTHER clients.
-      if (hostChanged) {
-        socket.to(roomId).emit(EVENTS.ROOM_STATE, roomService.toPublicRoomState(updatedRoom))
-      }
+      // Broadcast state so persistent member online/offline roster stays fresh.
+      socket.to(roomId).emit(EVENTS.ROOM_STATE, roomService.toPublicRoomState(updatedRoom))
       socket.emit(EVENTS.ROOM_REJOIN_TOKEN, { roomId, token: rejoin.token, expiresAt: rejoin.expiresAt })
       socket.emit(EVENTS.CHAT_HISTORY, chatService.getHistory(roomId))
 
@@ -211,6 +209,30 @@ export function registerRoomController(io: TypedServer, socket: TypedSocket) {
     }),
   )
 
+  // ---- Delete room (仅房主) ----
+  socket.on(
+    EVENTS.ROOM_DELETE,
+    withOwnerOnly((ctx) => {
+      const socketIds = roomRepo.getSocketIdsForRoom(ctx.roomId)
+      const deleted = roomService.deleteRoom(ctx.roomId)
+      if (!deleted) {
+        ctx.socket.emit(EVENTS.ROOM_ERROR, { code: ERROR_CODE.ROOM_NOT_FOUND, message: '房间不存在' })
+        return
+      }
+
+      io.to(ctx.roomId).emit(EVENTS.ROOM_DELETED, { roomId: ctx.roomId })
+      for (const socketId of socketIds) {
+        const target = io.sockets.sockets.get(socketId)
+        if (!target) continue
+        target.leave(ctx.roomId)
+        target.join('lobby')
+        roomRepo.deleteSocketMapping(socketId)
+      }
+      roomService.broadcastRoomList(io)
+      logger.info(`Room ${ctx.roomId} dissolved by owner`, { roomId: ctx.roomId })
+    }),
+  )
+
   // ---- Set user role (仅房主) ----
   socket.on(
     EVENTS.ROOM_SET_ROLE,
@@ -231,7 +253,9 @@ export function registerRoomController(io: TypedServer, socket: TypedSocket) {
         return
       }
 
+      const updatedRoom = roomRepo.get(ctx.roomId)
       io.to(ctx.roomId).emit(EVENTS.ROOM_ROLE_CHANGED, { userId, role })
+      if (updatedRoom) io.to(ctx.roomId).emit(EVENTS.ROOM_STATE, roomService.toPublicRoomState(updatedRoom))
       logger.info(`Role changed: ${userId} -> ${role} in room ${ctx.roomId}`, { roomId: ctx.roomId })
     }),
   )
@@ -271,6 +295,7 @@ function handleLeave(io: TypedServer, socket: TypedSocket, reason?: string, revo
   socket.leave(roomId)
   socket.join('lobby')
   io.to(roomId).emit(EVENTS.ROOM_USER_LEFT, user)
+  if (room) io.to(roomId).emit(EVENTS.ROOM_STATE, roomService.toPublicRoomState(room))
 
   // System message for user left (server-authoritative)
   if (room && room.users.length > 0) {

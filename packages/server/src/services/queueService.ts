@@ -1,12 +1,14 @@
 import type { PlayMode, Track } from '@music-together/shared'
 import { LIMITS } from '@music-together/shared'
 import { roomRepo } from '../repositories/roomRepository.js'
+import { persistentRoomRepo } from '../repositories/persistentRoomRepository.js'
 
 export function addTrack(roomId: string, track: Track): boolean {
   const room = roomRepo.get(roomId)
   if (!room) return false
   if (room.queue.length >= LIMITS.QUEUE_MAX_SIZE) return false
   room.queue.push(track)
+  persistentRoomRepo.persistRoom(room)
   return true
 }
 
@@ -22,6 +24,7 @@ export function addBatchTracks(roomId: string, tracks: Track[]): number {
   if (available <= 0) return 0
   const toAdd = tracks.slice(0, available)
   room.queue.push(...toAdd)
+  persistentRoomRepo.persistRoom(room)
   return toAdd.length
 }
 
@@ -38,6 +41,7 @@ export function insertAfterCurrent(roomId: string, track: Track): boolean {
   const currentIndex = currentId ? room.queue.findIndex((t) => t.id === currentId) : -1
   const insertIndex = currentIndex >= 0 ? currentIndex + 1 : 0
   room.queue.splice(insertIndex, 0, track)
+  persistentRoomRepo.persistRoom(room)
   return true
 }
 
@@ -45,6 +49,7 @@ export function removeTrack(roomId: string, trackId: string): void {
   const room = roomRepo.get(roomId)
   if (room) {
     room.queue = room.queue.filter((t) => t.id !== trackId)
+    persistentRoomRepo.persistRoom(room)
   }
 }
 
@@ -52,6 +57,7 @@ export function clearQueue(roomId: string): void {
   const room = roomRepo.get(roomId)
   if (room) {
     room.queue = []
+    persistentRoomRepo.persistRoom(room)
   }
 }
 
@@ -76,6 +82,7 @@ export function reorderTracks(roomId: string, trackIds: string[]): void {
     }
   }
   room.queue = reordered
+  persistentRoomRepo.persistRoom(room)
 }
 
 /**

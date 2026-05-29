@@ -1,10 +1,12 @@
 import { timingSafeEqual } from 'node:crypto'
-import type { AudioQuality, RoomListItem, User } from '@music-together/shared'
+import type { AudioQuality, RoomListItem, RoomMember, User } from '@music-together/shared'
 import { nanoid } from 'nanoid'
 import type { RoomData } from '../repositories/types.js'
 import { roomRepo } from '../repositories/roomRepository.js'
 import { chatRepo } from '../repositories/chatRepository.js'
-import { scheduleDeletion, cancelDeletionTimer } from './roomLifecycleService.js'
+import { persistentRoomRepo, toOnlineUser } from '../repositories/persistentRoomRepository.js'
+import { userRepo } from '../repositories/userRepository.js'
+import { cancelDeletionTimer, cleanupDestroyedRoom } from './roomLifecycleService.js'
 import { consumeRejoinTicket } from './rejoinTicketService.js'
 import { estimateCurrentTime } from './syncService.js'
 import { updateVoteThreshold } from './voteService.js'
@@ -26,6 +28,28 @@ export { broadcastRoomList } from './roomLifecycleService.js'
  * 若 conductor 变更且正在播放，刷新 playState 时间戳以确保
  * 新 conductor 的首次 report 不被 validateConductorReport 拒绝。
  */
+function refreshRoomMembers(room: RoomData): void {
+  room.members = persistentRoomRepo.getMembers(room.id)
+}
+
+function setOnlineMember(room: RoomData, member: RoomMember): User {
+  const user = toOnlineUser({ ...member, isOnline: true })
+  const existing = room.users.find((u) => u.id === user.id)
+  if (existing) {
+    existing.nickname = user.nickname
+    existing.role = user.role
+    existing.avatarUrl = user.avatarUrl
+    return existing
+  }
+  room.users.push(user)
+  return user
+}
+
+export function persistRoomState(roomId: string): void {
+  const room = roomRepo.get(roomId)
+  if (room) persistentRoomRepo.persistRoom(room)
+}
+
 function electConductor(room: RoomData): boolean {
   const prev = room.hostId
   const candidate =
@@ -49,6 +73,16 @@ function electConductor(room: RoomData): boolean {
 // Public API — Room CRUD
 // ---------------------------------------------------------------------------
 
+export function initializeRoomsFromPersistence(): void {
+  persistentRoomRepo.resetAllMembersOffline()
+  const rooms = persistentRoomRepo.hydrateRooms()
+  roomRepo.load(rooms)
+  for (const room of rooms) {
+    chatRepo.createRoom(room.id)
+  }
+  logger.info(`Loaded ${rooms.length} persisted rooms`, { roomCount: rooms.length })
+}
+
 export function createRoom(
   socketId: string,
   nickname: string,
@@ -58,8 +92,17 @@ export function createRoom(
 ): { room: RoomData; user: User } {
   const roomId = nanoid(6).toUpperCase()
   const userId = persistentUserId || socketId
-
-  const user: User = { id: userId, nickname, role: 'owner' }
+  const profile = userRepo.ensureUser(userId, nickname)
+  const member: RoomMember = {
+    id: profile.id,
+    nickname: profile.nickname || nickname,
+    role: 'owner',
+    avatarUrl: profile.avatarUrl ?? null,
+    isOnline: true,
+    joinedAt: Date.now(),
+    lastSeenAt: Date.now(),
+  }
+  const user: User = toOnlineUser(member)
 
   const room: RoomData = {
     id: roomId,
@@ -70,6 +113,7 @@ export function createRoom(
     adminUserIds: new Set(),
     audioQuality: 320,
     users: [user],
+    members: [member],
     queue: [],
     currentTrack: null,
     playState: {
@@ -81,6 +125,9 @@ export function createRoom(
   }
 
   roomRepo.set(roomId, room)
+  persistentRoomRepo.persistRoom(room)
+  persistentRoomRepo.upsertMember(roomId, profile, 'owner')
+  refreshRoomMembers(room)
   chatRepo.createRoom(roomId)
   roomRepo.setSocketMapping(socketId, roomId, userId)
 
@@ -101,35 +148,18 @@ export function joinRoom(
   cancelDeletionTimer(roomId)
 
   const userId = persistentUserId || socketId
-  const isCreator = userId === room.creatorId
-
-  // Determine the permission role — purely based on identity, no grace logic
-  function resolveRole(): User['role'] {
-    if (isCreator) return 'owner'
-    if (room!.adminUserIds.has(userId)) return 'admin'
-    return 'member'
-  }
-
-  // Rejoin — update existing user entry instead of creating duplicate
-  const existing = room.users.find((u) => u.id === userId)
-  if (existing) {
-    existing.nickname = nickname
-    existing.role = resolveRole()
-    roomRepo.setSocketMapping(socketId, roomId, userId)
-    const hostChanged = electConductor(room)
-    return { room, user: existing, hostChanged }
-  }
-
-  // New user entry
-  const role = resolveRole()
-  const user: User = { id: userId, nickname, role }
-  room.users.push(user)
+  const profile = userRepo.ensureUser(userId, nickname)
+  const existingMember = persistentRoomRepo.getMember(roomId, userId)
+  const role = userId === room.creatorId ? 'owner' : existingMember?.role === 'admin' || room.adminUserIds.has(userId) ? 'admin' : 'member'
+  const member = persistentRoomRepo.upsertMember(roomId, profile, role)
+  refreshRoomMembers(room)
+  const user = setOnlineMember(room, { ...member, role })
   roomRepo.setSocketMapping(socketId, roomId, userId)
 
-  // Re-elect conductor (owner joining takes priority over current conductor)
   const hostChanged = electConductor(room)
+  persistentRoomRepo.persistRoom(room)
 
-  logger.info(`User ${nickname} joined room ${roomId} as ${role}`, { roomId })
+  logger.info(`User ${user.nickname} joined room ${roomId} as ${user.role}`, { roomId })
   return { room, user, hostChanged }
 }
 
@@ -164,10 +194,18 @@ export function leaveRoom(
 
   room.users = room.users.filter((u) => u.id !== userId)
   roomRepo.deleteSocketMapping(socketId)
+  persistentRoomRepo.setMemberOnline(roomId, userId, false)
+  refreshRoomMembers(room)
 
-  // If room is empty, schedule deletion after grace period
   if (room.users.length === 0) {
-    scheduleDeletion(roomId, io)
+    room.playState = {
+      ...room.playState,
+      isPlaying: false,
+      currentTime: estimateCurrentTime(roomId),
+      serverTimestamp: Date.now(),
+    }
+    persistentRoomRepo.persistRoom(room)
+    logger.info(`Last online user ${user.nickname} left room ${roomId}; room remains persisted`, { roomId })
     return { roomId, user, room, hostChanged: false, voteUpdated: false }
   }
 
@@ -176,6 +214,7 @@ export function leaveRoom(
 
   // Update active vote threshold so it doesn't become impossible to pass
   const voteUpdated = updateVoteThreshold(roomId, room.users.length, user.id)
+  persistentRoomRepo.persistRoom(room)
 
   logger.info(`User ${user.nickname} left room ${roomId}`, { roomId })
   return { roomId, user, room, hostChanged, voteUpdated }
@@ -191,6 +230,16 @@ export function getRoom(roomId: string): RoomData | undefined {
 
 export function listRooms(): RoomListItem[] {
   return roomRepo.getAllAsList()
+}
+
+export function deleteRoom(roomId: string): boolean {
+  const room = roomRepo.get(roomId)
+  if (!room) return false
+  persistentRoomRepo.softDeleteRoom(roomId)
+  roomRepo.delete(roomId)
+  chatRepo.deleteRoom(roomId)
+  cleanupDestroyedRoom(roomId)
+  return true
 }
 
 export function updateSettings(
@@ -212,24 +261,31 @@ export function updateSettings(
   if (settings.audioQuality !== undefined) {
     room.audioQuality = settings.audioQuality
   }
+
+  persistentRoomRepo.persistRoom(room)
 }
 
 export function setUserRole(roomId: string, targetUserId: string, role: 'admin' | 'member'): boolean {
   const room = roomRepo.get(roomId)
   if (!room) return false
-  const user = room.users.find((u) => u.id === targetUserId)
-  if (!user) return false
+  const member = room.members.find((u) => u.id === targetUserId)
+  if (!member) return false
   // Cannot change owner's role
-  if (user.role === 'owner') return false
-  user.role = role
+  if (member.role === 'owner') return false
+  member.role = role
+  const user = room.users.find((u) => u.id === targetUserId)
+  if (user) user.role = role
   // Sync persistent admin set
   if (role === 'admin') {
     room.adminUserIds.add(targetUserId)
   } else {
     room.adminUserIds.delete(targetUserId)
   }
+  persistentRoomRepo.setMemberRole(roomId, targetUserId, role)
+  refreshRoomMembers(room)
   // Re-elect conductor (admin promotion/demotion may change priority)
   electConductor(room)
+  persistentRoomRepo.persistRoom(room)
   return true
 }
 
@@ -296,8 +352,9 @@ export function validateJoinRequest(
   const existingMapping = roomRepo.getSocketMapping(socketId)
   const effectiveUserId = identityUserId
   const alreadyInRoom = room.users.some((u) => u.id === effectiveUserId)
+  const persistentMember = room.members.find((u) => u.id === effectiveUserId)
   const isCreator = effectiveUserId === room.creatorId
-  const isPersistentAdmin = room.adminUserIds.has(effectiveUserId)
+  const isPersistentAdmin = persistentMember?.role === 'admin' || room.adminUserIds.has(effectiveUserId)
   const hasValidRejoinTicket =
     typeof rejoinToken === 'string' && rejoinToken.length > 0
       ? consumeRejoinTicket(rejoinToken, roomId, effectiveUserId)
@@ -305,7 +362,7 @@ export function validateJoinRequest(
 
   // Password bypass: same socket mapping, already in room, creator, or persistent admin
   const skipPassword =
-    hasValidRejoinTicket || existingMapping?.roomId === roomId || alreadyInRoom || isCreator || isPersistentAdmin
+    hasValidRejoinTicket || existingMapping?.roomId === roomId || alreadyInRoom || Boolean(persistentMember) || isCreator || isPersistentAdmin
   // Notification skip: only when user is literally still in the room
   const isRejoin = existingMapping?.roomId === roomId || alreadyInRoom
 

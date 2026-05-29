@@ -14,8 +14,16 @@ import type { SocketData } from './middleware/types.js'
 import authRoutes from './routes/auth.js'
 import musicRoutes from './routes/music.js'
 import roomRoutes from './routes/rooms.js'
+import createUserRoutes from './routes/users.js'
+import { initDatabase, closeDatabase } from './persistence/database.js'
+import { runMigrations } from './persistence/migrations.js'
 import { clearAllTimers } from './services/roomLifecycleService.js'
+import { initializeRoomsFromPersistence } from './services/roomService.js'
 import { logger } from './utils/logger.js'
+
+initDatabase()
+runMigrations()
+initializeRoomsFromPersistence()
 
 const app = express()
 const httpServer = createServer(app)
@@ -33,11 +41,22 @@ app.use(
 )
 app.use(express.json({ limit: '1mb' }))
 app.use('/api', identityHttpMiddleware)
+app.use('/uploads/avatars', express.static(config.persistence.avatarDir, { maxAge: '1h' }))
+
+// Socket.IO with typed events
+const io = new Server<ClientToServerEvents, ServerToClientEvents, Record<string, never>, SocketData>(httpServer, {
+  cors: {
+    origin: config.explicitOrigins.length > 0 ? config.explicitOrigins : true,
+    methods: ['GET', 'POST'],
+    credentials: true,
+  },
+})
 
 // REST API routes
 app.use('/api/auth', authRoutes)
 app.use('/api/music', musicRoutes)
 app.use('/api/rooms', roomRoutes)
+app.use('/api/users', createUserRoutes(io))
 
 // Health check
 app.get('/api/health', (_req, res) => {
@@ -84,15 +103,6 @@ if (fs.existsSync(indexHtml)) {
   logger.info('Client dist not found, skipping static file serving (dev mode)')
 }
 
-// Socket.IO with typed events
-const io = new Server<ClientToServerEvents, ServerToClientEvents, Record<string, never>, SocketData>(httpServer, {
-  cors: {
-    origin: config.explicitOrigins.length > 0 ? config.explicitOrigins : true,
-    methods: ['GET', 'POST'],
-    credentials: true,
-  },
-})
-
 attachSocketIdentity(io)
 initializeSocket(io)
 
@@ -119,6 +129,7 @@ function shutdown(signal: string) {
   clearAllTimers()
   io.close(() => {
     httpServer.close(() => {
+      closeDatabase()
       logger.info('Server closed')
       process.exit(0)
     })

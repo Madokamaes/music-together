@@ -5,13 +5,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
+import { UserAvatar } from '@/components/UserAvatar'
+import { resetMyAvatar, updateMyProfile, uploadMyAvatar } from '@/lib/profileApi'
 import { storage } from '@/lib/storage'
 import { usePlayerStore } from '@/stores/playerStore'
 import { useRoomStore } from '@/stores/roomStore'
 import type { AudioQuality } from '@music-together/shared'
 import { LIMITS } from '@music-together/shared'
-import { Check, Copy, Lock, LockOpen, Pencil, X } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { Check, Copy, Lock, LockOpen, Pencil, Trash2, X } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { SettingRow } from './SettingRow'
 
@@ -28,9 +30,10 @@ function getQualityLabel(quality: AudioQuality): string {
 
 interface RoomSettingsSectionProps {
   onUpdateSettings: (settings: { name?: string; password?: string | null; audioQuality?: AudioQuality }) => void
+  onDeleteRoom?: () => void
 }
 
-export function RoomSettingsSection({ onUpdateSettings }: RoomSettingsSectionProps) {
+export function RoomSettingsSection({ onUpdateSettings, onDeleteRoom }: RoomSettingsSectionProps) {
   const room = useRoomStore((s) => s.room)
   const currentUser = useRoomStore((s) => s.currentUser)
   const roomPassword = useRoomStore((s) => s.roomPassword)
@@ -46,13 +49,61 @@ export function RoomSettingsSection({ onUpdateSettings }: RoomSettingsSectionPro
   const [passwordInput, setPasswordInput] = useState('')
   const [passwordEnabled, setPasswordEnabled] = useState(room?.hasPassword ?? false)
 
-  // 昵称编辑
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [nickname, setNickname] = useState(storage.getNickname())
-  const handleNicknameBlur = () => {
+  const [avatarUrl, setAvatarUrl] = useState(storage.getAvatarUrl())
+  const [isProfileSaving, setIsProfileSaving] = useState(false)
+  const [isAvatarSaving, setIsAvatarSaving] = useState(false)
+
+  const syncProfile = (profile: { nickname: string; avatarUrl?: string | null }) => {
+    storage.setNickname(profile.nickname)
+    storage.setAvatarUrl(profile.avatarUrl ?? '')
+    setNickname(profile.nickname)
+    setAvatarUrl(profile.avatarUrl ?? '')
+  }
+
+  const handleNicknameBlur = async () => {
     const trimmed = nickname.trim()
-    if (trimmed) {
-      storage.setNickname(trimmed)
-      toast.success('昵称已保存（下次加入房间生效）')
+    if (!trimmed || trimmed === storage.getNickname() || isProfileSaving) return
+
+    setIsProfileSaving(true)
+    try {
+      const profile = await updateMyProfile({ nickname: trimmed })
+      syncProfile(profile)
+      toast.success('昵称已保存')
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : '昵称保存失败')
+    } finally {
+      setIsProfileSaving(false)
+    }
+  }
+
+  const handleAvatarUpload = async (file: File | undefined) => {
+    if (!file || isAvatarSaving) return
+    setIsAvatarSaving(true)
+    try {
+      const profile = await uploadMyAvatar(file)
+      syncProfile(profile)
+      toast.success('头像已更新')
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : '头像上传失败')
+    } finally {
+      setIsAvatarSaving(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  const handleAvatarReset = async () => {
+    if (isAvatarSaving) return
+    setIsAvatarSaving(true)
+    try {
+      const profile = await resetMyAvatar()
+      syncProfile(profile)
+      toast.success('头像已重置')
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : '头像重置失败')
+    } finally {
+      setIsAvatarSaving(false)
     }
   }
 
@@ -274,6 +325,22 @@ export function RoomSettingsSection({ onUpdateSettings }: RoomSettingsSectionPro
               </Button>
             </div>
           )}
+
+          <SettingRow label="解散房间" description="解散后房间会从大厅移除，成员也会返回首页">
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              className="gap-1.5"
+              onClick={() => {
+                if (window.confirm('确定要解散这个房间吗？此操作不可撤销。')) onDeleteRoom?.()
+              }}
+              disabled={!onDeleteRoom}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              解散房间
+            </Button>
+          </SettingRow>
         </div>
       )}
 
@@ -282,14 +349,38 @@ export function RoomSettingsSection({ onUpdateSettings }: RoomSettingsSectionPro
         <h3 className="text-base font-semibold">个人信息</h3>
         <Separator className="mt-2 mb-4" />
 
-        <SettingRow label="昵称" description="修改后下次加入房间生效">
+        <SettingRow label="头像">
+          <div className="flex items-center gap-3">
+            <UserAvatar nickname={nickname} userId={currentUser?.id ?? storage.getUserId()} avatarUrl={avatarUrl} size="lg" />
+            <div className="flex gap-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                className="hidden"
+                onChange={(e) => void handleAvatarUpload(e.target.files?.[0])}
+              />
+              <Button type="button" variant="secondary" size="sm" onClick={() => fileInputRef.current?.click()} disabled={isAvatarSaving}>
+                上传头像
+              </Button>
+              <Button type="button" variant="outline" size="sm" onClick={() => void handleAvatarReset()} disabled={isAvatarSaving}>
+                重置
+              </Button>
+            </div>
+          </div>
+        </SettingRow>
+
+        <SettingRow label="昵称" description="会同步到当前房间成员和聊天身份">
           <Input
             value={nickname}
             onChange={(e) => setNickname(e.target.value)}
-            onBlur={handleNicknameBlur}
-            onKeyDown={(e) => e.key === 'Enter' && handleNicknameBlur()}
+            onBlur={() => void handleNicknameBlur()}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') void handleNicknameBlur()
+            }}
             className="w-40"
             placeholder="输入昵称..."
+            disabled={isProfileSaving}
           />
         </SettingRow>
       </div>

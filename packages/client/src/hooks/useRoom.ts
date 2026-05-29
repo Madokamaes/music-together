@@ -51,5 +51,9 @@ export function useRoom() {
     [socket],
   )
 
-  return { leaveRoom, updateSettings, setUserRole }
+  const deleteRoom = useCallback(() => {
+    socket.emit(EVENTS.ROOM_DELETE)
+  }, [socket])
+
+  return { leaveRoom, updateSettings, setUserRole, deleteRoom }
 }

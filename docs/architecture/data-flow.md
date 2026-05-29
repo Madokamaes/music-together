@@ -16,7 +16,8 @@ graph TB
     SocketServer[Socket.IO Server]
     Controllers[Controllers]
     Services[Services]
-    Repos[In-Memory Repositories]
+    Repos[Runtime Repositories]
+    SQLite[(SQLite + /app/data)]
   end
 
   subgraph external [External]
@@ -33,6 +34,7 @@ graph TB
   SocketServer --> Controllers
   Controllers --> Services
   Services --> Repos
+  Repos <-->|"write-through / startup hydrate"| SQLite
   Express --> Meting
   Services --> Meting
 ```
@@ -41,7 +43,7 @@ graph TB
 
 | 分类         | 客户端 → 服务端                                                                                                                     | 服务端 → 客户端                                                                                                                            |
 | ------------ | ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Room**     | `room:create`, `room:join`, `room:leave`, `room:list`, `room:settings`, `room:set_role`                                             | `room:created`, `room:state`, `room:user_joined`, `room:user_left`, `room:settings`, `room:error`, `room:list_update`, `room:role_changed` |
+| **Room**     | `room:create`, `room:join`, `room:leave`, `room:list`, `room:settings`, `room:set_role`, `room:delete`                               | `room:created`, `room:state`, `room:user_joined`, `room:user_left`, `room:settings`, `room:error`, `room:list_update`, `room:role_changed`, `room:deleted` |
 | **Player**   | `player:play`, `player:pause`, `player:seek`, `player:next`, `player:prev`, `player:sync`, `player:sync_request`, `player:set_mode` | `player:play`, `player:pause`, `player:resume`, `player:seek`, `player:sync_response`                                                      |
 | **Queue**    | `queue:add`, `queue:add_batch`, `queue:remove`, `queue:reorder`, `queue:clear`                                                      | `queue:updated`                                                                                                                            |
 | **Chat**     | `chat:message`                                                                                                                      | `chat:message`, `chat:history`                                                                                                             |
@@ -81,10 +83,15 @@ type AudioQuality = 128 | 192 | 320 | 999
 interface RoomState {
   id: string
   name: string
+  creatorId: string
   hostId: string
   hasPassword: boolean
+  password?: string | null // 仅房主可见
   audioQuality: AudioQuality
-  users: User[]
+  users: User[] // 当前在线用户
+  members: RoomMember[] // 持久房间成员名单
+  onlineCount: number
+  memberCount: number
   queue: Track[]
   currentTrack: Track | null
   playState: PlayState
@@ -120,14 +127,32 @@ interface User {
   id: string
   nickname: string
   role: UserRole
+  avatarUrl?: string | null
 }
 type UserRole = 'owner' | 'admin' | 'member'
+
+interface RoomMember {
+  id: string
+  nickname: string
+  role: UserRole
+  avatarUrl?: string | null
+  isOnline: boolean
+  joinedAt: number
+  lastSeenAt?: number | null
+}
+
+interface UserProfile {
+  id: string
+  nickname: string
+  avatarUrl?: string | null
+}
 
 // 聊天消息
 interface ChatMessage {
   id: string
   userId: string
   nickname: string
+  avatarUrl?: string | null
   content: string
   timestamp: number
   type: 'user' | 'system'
@@ -243,9 +268,9 @@ Host（房主）**自适应频率**上报当前播放位置到服务端：新曲
 2. **恢复播放**：暂停后点击播放，服务端检测同一首歌时发 `player:resume`（所有客户端预定时刻恢复）
 3. **自动续播**：房主独自重新加入时，若有歌曲暂停/排队中，自动恢复播放
 4. **加入房间补偿**：中途加入的客户端使用 `getServerTime()` 计算当前应处的播放位置，采用 fade-in 淡入策略（400ms 等待 + 200ms fade）减少加入延迟
-5. **房间宽限期**：房间空置 60 秒 (`ROOM_GRACE_PERIOD_MS`) 后自动清理（重复调用 `scheduleDeletion` 不会创建重复 timer）
+5. **永久房间**：房间空置后只暂停并快照播放状态，成员保持离线名单；只有房主触发 `room:delete` 才会软删除房间并广播 `room:deleted`
 6. **角色与 Conductor 机制**：房间记录 `creatorId`（创建者 ID，永久不变）和 `adminUserIds: Set<string>`（持久化 admin 集合）。`user.role` 仅表示权限（`owner` / `admin` / `member`），`room.hostId` 是自动选举的播放主持（conductor）。Conductor 在用户加入/离开时自动重选（优先级：owner > admin > member），无需宽限期。创建者始终为 `owner`，返回时自动成为 conductor。`setUserRole` 只能设置 `admin` / `member`（不能改 `owner`），同步维护 `adminUserIds`。返回的创建者/持久化 admin 免密码验证
-7. **持久化用户身份**：客户端通过 `storage.getUserId()` 生成并持久化 `nanoid`，每次 `ROOM_CREATE` / `ROOM_JOIN` 携带 `userId`，使服务端可跨 socket 重连识别同一用户。服务端通过 `roomRepo.getSocketMapping(socket.id)` 获取 `{ roomId, userId }` 映射——`socket.id` 仅用于 Socket 映射查找，所有涉及用户身份的操作（host 判断、auth cookie 归属、权限检查等）统一使用 `mapping.userId`
+7. **持久化用户身份**：服务端通过签名 HttpOnly identity cookie 识别用户，`/api/auth/identity/bootstrap` 会签发/续期身份并写入 `users` 表；客户端仅把 userId/nickname/avatarUrl 镜像到 localStorage 供 UI 使用。服务端通过 `roomRepo.getSocketMapping(socket.id)` 获取 `{ roomId, userId }` 映射——`socket.id` 仅用于 Socket 映射查找，所有涉及用户身份的操作（host 判断、auth cookie 归属、权限检查等）统一使用 `mapping.userId`
 8. **`currentUser` 自动推导**：`roomStore` 中 `currentUser` 始终从 `room.users` 自动推导（`deriveCurrentUser`），`setRoom` / `addUser` / `removeUser` / `updateRoom` 等 action 内部自动同步，不暴露 `setCurrentUser` 以避免脱节风险
 9. **断线时钟重置**：`resetAllRoomState()` 除重置 Zustand stores 外，还调用 `resetClockSync()` 清空 NTP 采样，确保重连后使用全新的时钟校准数据
 10. **Socket 断开竞态防护**：页面刷新时新旧 socket 的 join/disconnect 到达顺序不确定，`leaveRoom` 通过 `roomRepo.hasOtherSocketForUser()` 检测同一用户是否有更新的 socket 连接，避免旧 socket disconnect 误删活跃用户
@@ -255,6 +280,9 @@ Host（房主）**自适应频率**上报当前播放位置到服务端：新曲
 14. **大厅重连刷新**：`useLobby` 监听 socket `connect` 事件，断线重连后自动重新拉取房间列表
 15. **投票执行**：`VOTE_CAST` / `VOTE_START` 中 `executeAction` 使用 `await` 确保动作完成后才广播 `VOTE_RESULT`。投票的 `next`/`prev` 通过 `playerService.playNextTrackInRoom` / `playPrevTrackInRoom`（`skipDebounce: true`）执行，与直接操作路径完全一致（含 stopPlayback 兜底和播放失败重试），且不受 debounce 影响
 16. **密码安全隔离**：`toPublicRoomState()` 默认不含密码明文；`toPublicRoomStateForOwner()` 仅在发送给 owner 的 socket 时使用（创建房间、加入房间、设置变更、conductor 变更）。非 owner 成员仅能看到 `hasPassword` 布尔标记，无法获取密码明文。设置广播通过 `socket.emit`（owner） + `socket.to(roomId).emit`（其他成员）分别发送。owner 离开导致 conductor 变更时，通过 `roomRepo.getSocketIdForUser()` 反查新 owner 的 socketId 定向发送含密码版本
+17. **SQLite 写入与恢复**：运行中仍使用 `roomRepo`/`chatRepo` 服务实时 Socket 状态；房间、成员、队列、播放、聊天、用户资料、听歌事件同步写入 SQLite。服务启动时先跑迁移，再把未软删除房间恢复到内存，并将成员统一标记为离线。
+18. **听歌统计语义**：`playerService` 在成功解析 stream URL 并开始播放时写入 `listening_events`，并把当时在线的 `room.users` 写入 `listening_event_users`。暂停、恢复、seek 和 sync 不创建统计事件。
+19. **头像语义**：上传头像存放在 `AVATAR_DIR`，通过 `/uploads/avatars/*` 静态路由访问；没有上传头像时 `avatarUrl` 为 null，前端根据 userId/nickname 生成默认渐变头像。
 
 ## REST API
 
@@ -266,6 +294,10 @@ Host（房主）**自适应频率**上报当前播放位置到服务端：新曲
 | `/api/music/cover`         | GET  | 获取封面图                                                                                              |
 | `/api/music/playlist`      | GET  | 获取歌单曲目列表（`source` + `id` + `limit` + `offset`），分页返回 `{ tracks, total, offset, hasMore }` |
 | `/api/rooms/:roomId/check` | GET  | 房间预检（存在性 + 是否需要密码），用于分享链接直接访问时的前置校验                                     |
+| `/api/users/me`            | GET  | 获取当前 cookie 身份对应的用户资料                                                                      |
+| `/api/users/me`            | PATCH | 更新当前用户昵称                                                                                       |
+| `/api/users/me/avatar`     | POST | 上传当前用户头像（PNG/JPEG/WebP，最大 1MB）                                                             |
+| `/api/users/me/avatar`     | DELETE | 重置当前用户头像                                                                                      |
 | `/api/health`              | GET  | 健康检查                                                                                                |
 
 ---

@@ -1,5 +1,6 @@
 # ---- 阶段 1: 安装依赖 ----
 FROM node:22-alpine AS deps
+RUN apk add --no-cache python3 make g++
 RUN corepack enable
 WORKDIR /app
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
@@ -19,6 +20,7 @@ RUN pnpm --filter @music-together/client run build
 
 # ---- 阶段 3: 生产镜像 ----
 FROM node:22-alpine AS production
+RUN apk add --no-cache python3 make g++
 RUN corepack enable
 WORKDIR /app
 
@@ -41,4 +43,6 @@ RUN sed -i 's|./src/index.ts|./dist/index.js|g' packages/shared/package.json
 
 EXPOSE 3001
 ENV NODE_ENV=production
+ENV DATA_DIR=/app/data
+VOLUME ["/app/data"]
 CMD ["node", "packages/server/dist/index.js"]

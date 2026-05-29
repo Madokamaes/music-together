@@ -79,7 +79,7 @@ export const RoomCard = memo(function RoomCard({ room, index, onClick }: RoomCar
       <div className="mt-[18px] flex items-center justify-between gap-3 text-[11px] text-muted-foreground/70">
         <span className="flex items-center gap-1 text-primary/90">
           <Users className="h-3 w-3" />
-          {room.userCount}
+          {room.userCount}/{room.memberCount}
         </span>
         <span className="font-mono text-muted-foreground/60">{room.id}</span>
       </div>

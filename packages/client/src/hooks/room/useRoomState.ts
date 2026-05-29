@@ -1,4 +1,5 @@
 import { useSocketContext } from '@/providers/SocketProvider'
+import { resetAllRoomState } from '@/lib/resetStores'
 import { useRoomStore } from '@/stores/roomStore'
 import { storage } from '@/lib/storage'
 import { ERROR_CODE, EVENTS } from '@music-together/shared'
@@ -118,6 +119,15 @@ export function useRoomState() {
       toast.error(reasonText ? `自动换源失败：${data.trackTitle}（${reasonText}）` : `自动换源失败：${data.trackTitle}`, { id })
     }
 
+    const onRoomDeleted = (data: { roomId: string }) => {
+      const currentRoomId = useRoomStore.getState().room?.id
+      if (currentRoomId && currentRoomId !== data.roomId) return
+      storage.clearRejoinToken(data.roomId)
+      resetAllRoomState()
+      toast.info('房间已解散')
+      navigateRef.current('/', { replace: true })
+    }
+
     const onError = (error: { code: string; message: string }) => {
       // WRONG_PASSWORD is handled by RoomPage's own UI (gate password field),
       // so skip the generic toast to avoid duplicate feedback.
@@ -136,6 +146,7 @@ export function useRoomState() {
     socket.on(EVENTS.ROOM_SETTINGS, onSettings)
     socket.on(EVENTS.ROOM_ROLE_CHANGED, onRoleChanged)
     socket.on(EVENTS.ROOM_AUTO_FALLBACK, onAutoFallback)
+    socket.on(EVENTS.ROOM_DELETED, onRoomDeleted)
     socket.on(EVENTS.ROOM_ERROR, onError)
 
     // If room was already set before this hook mounted (e.g. HomePage consumed
@@ -154,6 +165,7 @@ export function useRoomState() {
       socket.off(EVENTS.ROOM_SETTINGS, onSettings)
       socket.off(EVENTS.ROOM_ROLE_CHANGED, onRoleChanged)
       socket.off(EVENTS.ROOM_AUTO_FALLBACK, onAutoFallback)
+      socket.off(EVENTS.ROOM_DELETED, onRoomDeleted)
       socket.off(EVENTS.ROOM_ERROR, onError)
     }
   }, [socket])

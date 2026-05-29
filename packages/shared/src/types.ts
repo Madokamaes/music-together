@@ -71,10 +71,13 @@ export interface RoomState {
   creatorId: string
   hostId: string
   hasPassword: boolean
-  /** 密码明文（仅房间内成员可见） */
+  /** 密码明文（仅房主可见） */
   password?: string | null
   audioQuality: AudioQuality
   users: User[]
+  members: RoomMember[]
+  onlineCount: number
+  memberCount: number
   queue: Track[]
   currentTrack: Track | null
   playState: PlayState
@@ -100,12 +103,30 @@ export interface User {
   id: string
   nickname: string
   role: UserRole
+  avatarUrl?: string | null
+}
+
+export interface RoomMember {
+  id: string
+  nickname: string
+  role: UserRole
+  avatarUrl?: string | null
+  isOnline: boolean
+  joinedAt: number
+  lastSeenAt?: number | null
+}
+
+export interface UserProfile {
+  id: string
+  nickname: string
+  avatarUrl?: string | null
 }
 
 export interface ChatMessage {
   id: string
   userId: string
   nickname: string
+  avatarUrl?: string | null
   content: string
   timestamp: number
   type: 'user' | 'system'
@@ -132,6 +153,7 @@ export interface RoomListItem {
   name: string
   hasPassword: boolean
   userCount: number
+  memberCount: number
   currentTrackTitle: string | null
   currentTrackArtist: string | null
 }

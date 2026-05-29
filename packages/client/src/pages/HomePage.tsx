@@ -118,6 +118,7 @@ export default function HomePage() {
                 name: targetRoomId,
                 hasPassword: true,
                 userCount: 0,
+                memberCount: 0,
                 currentTrackTitle: null,
                 currentTrackArtist: null,
               },

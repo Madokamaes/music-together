@@ -11,6 +11,8 @@ export const EVENTS = {
   ROOM_SETTINGS: 'room:settings',
   ROOM_ERROR: 'room:error',
   ROOM_AUTO_FALLBACK: 'room:auto_fallback',
+  ROOM_DELETE: 'room:delete',
+  ROOM_DELETED: 'room:deleted',
 
   // Room discovery
   ROOM_LIST: 'room:list',

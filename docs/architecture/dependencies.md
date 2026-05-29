@@ -50,6 +50,7 @@
 | escape-html                       | ^1.0.3  | HTML 转义（防注入）                                                 |
 | p-limit                           | ^7.3.0  | 并发控制（封面批量解析）                                            |
 | lru-cache                         | ^11.2.6 | LRU 缓存（musicProvider 外部 API 结果缓存）                         |
+| better-sqlite3                    | ^12.10.0 | SQLite 持久化（房间、成员、聊天、用户资料、听歌统计）               |
 
 ## Shared 核心依赖
 

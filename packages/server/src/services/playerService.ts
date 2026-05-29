@@ -1,6 +1,8 @@
 import type { AudioQuality, MusicSource, PlayMode, PlayState, ScheduledPlayState, Track } from '@music-together/shared'
 import { EVENTS, ERROR_CODE, NTP } from '@music-together/shared'
 import { roomRepo } from '../repositories/roomRepository.js'
+import { listeningStatsRepo } from '../repositories/listeningStatsRepository.js'
+import { persistentRoomRepo } from '../repositories/persistentRoomRepository.js'
 import { nanoid } from 'nanoid'
 import { musicProvider } from './musicProvider.js'
 import * as queueService from './queueService.js'
@@ -193,6 +195,7 @@ async function _playTrackInRoom(io: TypedServer, roomId: string, track: Track): 
                   const roomBefore = roomRepo.get(roomId)
                   if (roomBefore) {
                     roomBefore.queue = roomBefore.queue.map((t) => (t.id === resolved.id ? replacement : t))
+                    persistentRoomRepo.persistRoom(roomBefore)
                     io.to(roomId).emit(EVENTS.QUEUE_UPDATED, { queue: roomBefore.queue })
                   }
 
@@ -240,7 +243,10 @@ async function _playTrackInRoom(io: TypedServer, roomId: string, track: Track): 
           // Auto-remove the invalid track from the queue
           queueService.removeTrack(roomId, resolved.id)
           const room2 = roomRepo.get(roomId)
-          if (room2) io.to(roomId).emit(EVENTS.QUEUE_UPDATED, { queue: room2.queue })
+          if (room2) {
+            persistentRoomRepo.persistRoom(room2)
+            io.to(roomId).emit(EVENTS.QUEUE_UPDATED, { queue: room2.queue })
+          }
           io.to(roomId).emit(EVENTS.ROOM_ERROR, {
             code: ERROR_CODE.STREAM_FAILED,
             message: `无法获取「${resolved.title}」的播放链接${hint}，已从列表移除`,
@@ -254,7 +260,10 @@ async function _playTrackInRoom(io: TypedServer, roomId: string, track: Track): 
       // Auto-remove on unexpected failure too
       queueService.removeTrack(roomId, resolved.id)
       const room2 = roomRepo.get(roomId)
-      if (room2) io.to(roomId).emit(EVENTS.QUEUE_UPDATED, { queue: room2.queue })
+      if (room2) {
+        persistentRoomRepo.persistRoom(room2)
+        io.to(roomId).emit(EVENTS.QUEUE_UPDATED, { queue: room2.queue })
+      }
       return false
     }
   }
@@ -278,6 +287,8 @@ async function _playTrackInRoom(io: TypedServer, roomId: string, track: Track): 
     currentTime: 0,
     serverTimestamp: scheduleTime,
   }
+  listeningStatsRepo.recordPlaybackStart(room, resolved)
+  persistentRoomRepo.persistRoom(room)
 
   io.to(roomId).emit(EVENTS.PLAYER_PLAY, {
     track: resolved,
@@ -297,6 +308,7 @@ export function resumeTrack(io: TypedServer, roomId: string, _initiatorSocket?: 
 
   const scheduleTime = getScheduleTime(roomId)
   room.playState = { ...room.playState, isPlaying: true, serverTimestamp: scheduleTime }
+  persistentRoomRepo.persistRoom(room)
   // All clients (including initiator) must execute at the same scheduled moment
   io.to(roomId).emit(EVENTS.PLAYER_RESUME, { playState: scheduled(room.playState, roomId, scheduleTime) })
 }
@@ -308,6 +320,7 @@ export function pauseTrack(io: TypedServer, roomId: string, _initiatorSocket?: T
   // Snapshot estimated position before pausing so resume starts from the correct point
   const snapshotTime = estimateCurrentTime(roomId)
   room.playState = { isPlaying: false, currentTime: snapshotTime, serverTimestamp: Date.now() }
+  persistentRoomRepo.persistRoom(room)
   // All clients must pause at the same scheduled moment
   io.to(roomId).emit(EVENTS.PLAYER_PAUSE, { playState: scheduled(room.playState, roomId) })
 }
@@ -323,6 +336,7 @@ export function seekTrack(io: TypedServer, roomId: string, currentTime: number, 
     currentTime,
     serverTimestamp: room.playState.isPlaying ? scheduleTime : Date.now(),
   }
+  persistentRoomRepo.persistRoom(room)
   // All clients must seek at the same scheduled moment
   io.to(roomId).emit(EVENTS.PLAYER_SEEK, { playState: scheduled(room.playState, roomId, scheduleTime) })
 }
@@ -331,6 +345,7 @@ export function updatePlayState(roomId: string, update: Partial<PlayState>): voi
   const room = roomRepo.get(roomId)
   if (room) {
     room.playState = { ...room.playState, ...update, serverTimestamp: Date.now() }
+    persistentRoomRepo.persistRoom(room)
   }
 }
 
@@ -343,6 +358,7 @@ export function setCurrentTrack(roomId: string, track: Track | null): void {
       currentTime: 0,
       serverTimestamp: Date.now(),
     }
+    persistentRoomRepo.persistRoom(room)
   }
 }
 
@@ -467,6 +483,7 @@ export async function syncPlaybackToSocket(
     const shouldAutoPlay = isAloneInRoom || room.playState.isPlaying
     if (isAloneInRoom && !room.playState.isPlaying) {
       room.playState = { ...room.playState, isPlaying: true, serverTimestamp: Date.now() }
+      persistentRoomRepo.persistRoom(room)
     }
 
     const snapshotCurrentTime = estimateCurrentTime(roomId)

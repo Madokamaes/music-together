@@ -33,6 +33,7 @@ router.get('/:roomId/check', (req, res) => {
     hasPassword: room.password !== null,
     name: room.name,
     userCount: room.users.length,
+    memberCount: room.members.length,
   })
 })
 

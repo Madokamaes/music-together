@@ -26,7 +26,8 @@ export function RoomHeader({ onOpenSearch, onOpenSettings, onOpenMembers, onLeav
   // Fine-grained selectors to avoid re-renders from queue/playState changes
   const roomName = useRoomStore((s) => s.room?.name)
   const roomId = useRoomStore((s) => s.room?.id)
-  const onlineMembers = useRoomStore((s) => s.room?.members.filter((member) => member.isOnline) ?? [])
+  const members = useRoomStore((s) => s.room?.members)
+  const onlineMembers = members?.filter((member) => member.isOnline) ?? []
   const onlineCount = useRoomStore((s) => s.room?.onlineCount ?? s.room?.users.length ?? 0)
   const memberCount = useRoomStore((s) => s.room?.memberCount ?? s.room?.members.length ?? onlineCount)
   const { isConnected } = useSocketContext()

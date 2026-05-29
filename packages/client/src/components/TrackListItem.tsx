@@ -30,7 +30,7 @@ export const TrackListItem = memo(function TrackListItem({
   return (
     <div
       style={style}
-      className={cn('group grid grid-cols-[auto_1fr_auto_auto] items-center gap-3 rounded-2xl border border-transparent bg-white/[0.035] px-3 py-3 transition-colors hover:border-border', className)}
+      className={cn('group grid min-w-0 grid-cols-[auto_auto_minmax(0,1fr)_auto_auto] items-center gap-3 rounded-2xl border border-transparent bg-white/[0.035] px-3 py-3 transition-colors hover:border-border', className)}
     >
       {/* Index */}
       <span className="w-6 shrink-0 text-center text-xs tabular-nums text-muted-foreground">{index + 1}</span>
@@ -77,10 +77,10 @@ export const TrackListItem = memo(function TrackListItem({
       </div>
 
       {/* Duration */}
-      <span className="shrink-0 text-xs tabular-nums text-muted-foreground">{formatDuration(track.duration)}</span>
+      <span className="shrink-0 justify-self-end text-right text-xs tabular-nums text-muted-foreground">{formatDuration(track.duration)}</span>
 
       {/* Add / Top buttons */}
-      <div className="flex shrink-0 items-center gap-1">
+      <div className="flex shrink-0 items-center justify-self-end gap-1">
         <Tooltip>
           <TooltipTrigger asChild>
             <Button

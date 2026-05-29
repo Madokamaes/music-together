@@ -57,7 +57,7 @@ export const VirtualTrackList = forwardRef<VirtualTrackListRef, VirtualTrackList
     onArtistClick,
     emptyIcon,
     emptyMessage = '暂无内容',
-    rowHeight = 52,
+    rowHeight = 64,
     overscan = 5,
     className,
   },

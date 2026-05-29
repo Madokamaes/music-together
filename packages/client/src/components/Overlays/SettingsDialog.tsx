@@ -27,6 +27,7 @@ interface SettingsDialogProps {
     name?: string
     password?: string | null
     audioQuality?: import('@music-together/shared').AudioQuality
+    isHidden?: boolean
   }) => void
   onSetUserRole?: (userId: string, role: 'admin' | 'member') => void
   onDeleteRoom?: () => void

@@ -14,6 +14,7 @@ interface RoomRow {
   queue_json: string
   current_track_json: string | null
   play_state_json: string
+  is_hidden: number
   created_at: number
   updated_at: number
   deleted_at: number | null
@@ -97,6 +98,7 @@ class PersistentRoomRepository {
         hostId: row.host_id ?? row.creator_id,
         adminUserIds: new Set(members.filter((member) => member.role === 'admin').map((member) => member.id)),
         audioQuality: row.audio_quality as AudioQuality,
+        isHidden: row.is_hidden === 1,
         users: [],
         members,
         queue: safeJson<Track[]>(row.queue_json, []),
@@ -113,16 +115,17 @@ class PersistentRoomRepository {
       .prepare(`
         INSERT INTO rooms (
           id, name, password, creator_id, host_id, audio_quality, play_mode, queue_json,
-          current_track_json, play_state_json, created_at, updated_at, deleted_at
+          current_track_json, play_state_json, is_hidden, created_at, updated_at, deleted_at
         ) VALUES (
           @id, @name, @password, @creatorId, @hostId, @audioQuality, @playMode, @queueJson,
-          @currentTrackJson, @playStateJson, @now, @now, NULL
+          @currentTrackJson, @playStateJson, @isHidden, @now, @now, NULL
         )
         ON CONFLICT(id) DO UPDATE SET
           name = excluded.name,
           password = excluded.password,
           host_id = excluded.host_id,
           audio_quality = excluded.audio_quality,
+          is_hidden = excluded.is_hidden,
           play_mode = excluded.play_mode,
           queue_json = excluded.queue_json,
           current_track_json = excluded.current_track_json,
@@ -136,6 +139,7 @@ class PersistentRoomRepository {
         creatorId: room.creatorId,
         hostId: room.hostId,
         audioQuality: room.audioQuality,
+        isHidden: room.isHidden ? 1 : 0,
         playMode: room.playMode,
         queueJson: JSON.stringify(sanitizeQueue(room.queue)),
         currentTrackJson: room.currentTrack ? JSON.stringify(stripStreamUrl(room.currentTrack)) : null,

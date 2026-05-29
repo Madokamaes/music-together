@@ -112,6 +112,7 @@ export function createRoom(
     hostId: userId,
     adminUserIds: new Set(),
     audioQuality: 320,
+    isHidden: false,
     users: [user],
     members: [member],
     queue: [],
@@ -244,7 +245,7 @@ export function deleteRoom(roomId: string): boolean {
 
 export function updateSettings(
   roomId: string,
-  settings: { name?: string; password?: string | null; audioQuality?: AudioQuality },
+  settings: { name?: string; password?: string | null; audioQuality?: AudioQuality; isHidden?: boolean },
 ): void {
   const room = roomRepo.get(roomId)
   if (!room) return
@@ -260,6 +261,10 @@ export function updateSettings(
 
   if (settings.audioQuality !== undefined) {
     room.audioQuality = settings.audioQuality
+  }
+
+  if (settings.isHidden !== undefined) {
+    room.isHidden = settings.isHidden
   }
 
   persistentRoomRepo.persistRoom(room)

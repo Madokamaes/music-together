@@ -12,3 +12,4 @@ ignoredBuiltDependencies:
 onlyBuiltDependencies:
   - esbuild
   - better-sqlite3
+  - sharp

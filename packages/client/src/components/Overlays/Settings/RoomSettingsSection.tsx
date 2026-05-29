@@ -6,13 +6,13 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
 import { UserAvatar } from '@/components/UserAvatar'
-import { resetMyAvatar, updateMyProfile, uploadMyAvatar } from '@/lib/profileApi'
+import { fetchMyProfile, resetMyAvatar, updateMyPassword, updateMyProfile, uploadMyAvatar } from '@/lib/profileApi'
 import { storage } from '@/lib/storage'
 import { usePlayerStore } from '@/stores/playerStore'
 import { useRoomStore } from '@/stores/roomStore'
 import type { AudioQuality } from '@music-together/shared'
 import { LIMITS } from '@music-together/shared'
-import { Check, Copy, Lock, LockOpen, Pencil, Trash2, X } from 'lucide-react'
+import { Check, Copy, EyeOff, Lock, LockOpen, Pencil, Trash2, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { SettingRow } from './SettingRow'
@@ -29,7 +29,7 @@ function getQualityLabel(quality: AudioQuality): string {
 }
 
 interface RoomSettingsSectionProps {
-  onUpdateSettings: (settings: { name?: string; password?: string | null; audioQuality?: AudioQuality }) => void
+  onUpdateSettings: (settings: { name?: string; password?: string | null; audioQuality?: AudioQuality; isHidden?: boolean }) => void
   onDeleteRoom?: () => void
 }
 
@@ -50,16 +50,23 @@ export function RoomSettingsSection({ onUpdateSettings, onDeleteRoom }: RoomSett
   const [passwordEnabled, setPasswordEnabled] = useState(room?.hasPassword ?? false)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [accountId, setAccountId] = useState(storage.getUserId())
   const [nickname, setNickname] = useState(storage.getNickname())
   const [avatarUrl, setAvatarUrl] = useState(storage.getAvatarUrl())
+  const [hasPassword, setHasPassword] = useState(false)
+  const [newPassword, setNewPassword] = useState('')
   const [isProfileSaving, setIsProfileSaving] = useState(false)
   const [isAvatarSaving, setIsAvatarSaving] = useState(false)
+  const [isPasswordSaving, setIsPasswordSaving] = useState(false)
 
-  const syncProfile = (profile: { nickname: string; avatarUrl?: string | null }) => {
+  const syncProfile = (profile: { id: string; nickname: string; avatarUrl?: string | null; hasPassword: boolean }) => {
+    storage.setUserId(profile.id)
     storage.setNickname(profile.nickname)
     storage.setAvatarUrl(profile.avatarUrl ?? '')
+    setAccountId(profile.id)
     setNickname(profile.nickname)
     setAvatarUrl(profile.avatarUrl ?? '')
+    setHasPassword(profile.hasPassword)
   }
 
   const handleNicknameBlur = async () => {
@@ -107,6 +114,36 @@ export function RoomSettingsSection({ onUpdateSettings, onDeleteRoom }: RoomSett
     }
   }
 
+  const handleCopyAccountId = () => {
+    if (!accountId) return
+    navigator.clipboard.writeText(accountId)
+    toast.success('账号 ID 已复制')
+  }
+
+  const handlePasswordSave = async () => {
+    if (isPasswordSaving) return
+    if (hasPassword) {
+      toast.error('暂不支持重置或修改密码')
+      return
+    }
+    if (newPassword.length === 0) {
+      toast.error('请输入密码')
+      return
+    }
+
+    setIsPasswordSaving(true)
+    try {
+      const profile = await updateMyPassword({ password: newPassword })
+      syncProfile(profile)
+      setNewPassword('')
+      toast.success('密码已设置')
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : '密码保存失败')
+    } finally {
+      setIsPasswordSaving(false)
+    }
+  }
+
   // Room name editing state
   const [editingName, setEditingName] = useState(false)
   const [nameInput, setNameInput] = useState('')
@@ -116,10 +153,16 @@ export function RoomSettingsSection({ onUpdateSettings, onDeleteRoom }: RoomSett
     setPasswordInput('')
   }, [room?.hasPassword])
 
-  const copyRoomLink = () => {
+  useEffect(() => {
+    void fetchMyProfile()
+      .then(syncProfile)
+      .catch(() => null)
+  }, [])
+
+  const copyInviteLink = () => {
     const url = `${window.location.origin}/room/${room?.id}`
     navigator.clipboard.writeText(url)
-    toast.success('房间链接已复制')
+    toast.success('邀请链接已复制')
   }
 
   const handlePasswordToggle = (checked: boolean) => {
@@ -215,19 +258,24 @@ export function RoomSettingsSection({ onUpdateSettings, onDeleteRoom }: RoomSett
         <SettingRow label="房间号">
           <div className="flex items-center gap-2">
             <code className="rounded bg-muted px-2 py-0.5 text-sm">{room?.id}</code>
+            {room?.isHidden && (
+              <Badge variant="secondary" className="gap-1">
+                <EyeOff className="h-3 w-3" /> 已隐藏
+              </Badge>
+            )}
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
                   variant="ghost"
                   size="icon"
                   className="h-7 w-7"
-                  onClick={copyRoomLink}
-                  aria-label="复制房间链接"
+                  onClick={copyInviteLink}
+                  aria-label="复制邀请链接"
                 >
                   <Copy className="h-3.5 w-3.5" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>复制房间链接</TooltipContent>
+              <TooltipContent>复制邀请链接</TooltipContent>
             </Tooltip>
           </div>
         </SettingRow>
@@ -326,6 +374,16 @@ export function RoomSettingsSection({ onUpdateSettings, onDeleteRoom }: RoomSett
             </div>
           )}
 
+          <SettingRow label="隐藏房间" description="隐藏后不会出现在大厅；知道完整邀请链接或房间号的人仍可加入，密码规则不变。">
+            <Switch
+              checked={room?.isHidden ?? false}
+              onCheckedChange={(checked) => {
+                onUpdateSettings({ isHidden: checked })
+                toast.success(checked ? '房间已隐藏' : '房间已公开')
+              }}
+            />
+          </SettingRow>
+
           <SettingRow label="解散房间" description="解散后房间会从大厅移除，成员也会返回首页">
             <Button
               type="button"
@@ -349,23 +407,35 @@ export function RoomSettingsSection({ onUpdateSettings, onDeleteRoom }: RoomSett
         <h3 className="text-base font-semibold">个人信息</h3>
         <Separator className="mt-2 mb-4" />
 
+        <SettingRow label="账号 ID" description="保存后可用账号 ID 和密码找回账号">
+          <div className="flex items-center gap-2">
+            <code className="max-w-[180px] truncate rounded bg-muted px-2 py-0.5 text-xs">{accountId || '初始化中'}</code>
+            <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={handleCopyAccountId} disabled={!accountId} aria-label="复制账号 ID">
+              <Copy className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        </SettingRow>
+
         <SettingRow label="头像">
           <div className="flex items-center gap-3">
             <UserAvatar nickname={nickname} userId={currentUser?.id ?? storage.getUserId()} avatarUrl={avatarUrl} size="lg" />
-            <div className="flex gap-2">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/png,image/jpeg,image/webp"
-                className="hidden"
-                onChange={(e) => void handleAvatarUpload(e.target.files?.[0])}
-              />
-              <Button type="button" variant="secondary" size="sm" onClick={() => fileInputRef.current?.click()} disabled={isAvatarSaving}>
-                上传头像
-              </Button>
-              <Button type="button" variant="outline" size="sm" onClick={() => void handleAvatarReset()} disabled={isAvatarSaving}>
-                重置
-              </Button>
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  className="hidden"
+                  onChange={(e) => void handleAvatarUpload(e.target.files?.[0])}
+                />
+                <Button type="button" variant="secondary" size="sm" onClick={() => fileInputRef.current?.click()} disabled={isAvatarSaving}>
+                  上传头像
+                </Button>
+                <Button type="button" variant="outline" size="sm" onClick={() => void handleAvatarReset()} disabled={isAvatarSaving}>
+                  重置
+                </Button>
+              </div>
+              <p className="text-[11px] text-muted-foreground/70">最大 5MB，上传后会自动压缩为 WebP。</p>
             </div>
           </div>
         </SettingRow>
@@ -382,6 +452,28 @@ export function RoomSettingsSection({ onUpdateSettings, onDeleteRoom }: RoomSett
             placeholder="输入昵称..."
             disabled={isProfileSaving}
           />
+        </SettingRow>
+
+        <SettingRow label="账号密码" description={hasPassword ? '已设置的密码可用于账号找回，暂不支持重置或修改' : '设置后可跨浏览器找回账号'}>
+          <div className="space-y-2">
+            <Badge variant={hasPassword ? 'secondary' : 'outline'}>{hasPassword ? '已设置密码' : '未设置密码'}</Badge>
+            {!hasPassword && (
+              <div className="flex gap-2">
+                <Input
+                  type="password"
+                  placeholder="设置密码"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && void handlePasswordSave()}
+                  className="h-8 w-44 text-sm"
+                  disabled={isPasswordSaving}
+                />
+                <Button type="button" size="sm" variant="secondary" onClick={() => void handlePasswordSave()} disabled={isPasswordSaving}>
+                  设置
+                </Button>
+              </div>
+            )}
+          </div>
         </SettingRow>
       </div>
     </div>

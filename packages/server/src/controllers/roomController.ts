@@ -183,6 +183,7 @@ export function registerRoomController(io: TypedServer, socket: TypedSocket) {
         name: parsed.data.name,
         password: parsed.data.password,
         audioQuality: parsed.data.audioQuality,
+        isHidden: parsed.data.isHidden,
       })
 
       const updatedRoom = roomRepo.get(ctx.roomId)
@@ -192,6 +193,7 @@ export function registerRoomController(io: TypedServer, socket: TypedSocket) {
       const baseSettings = {
         name: updatedRoom.name,
         hasPassword: updatedRoom.password !== null,
+        isHidden: updatedRoom.isHidden,
         audioQuality: updatedRoom.audioQuality,
       }
       // 给 owner 发送含密码的设置

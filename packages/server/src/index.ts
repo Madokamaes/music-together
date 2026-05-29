@@ -41,7 +41,7 @@ app.use(
 )
 app.use(express.json({ limit: '1mb' }))
 app.use('/api', identityHttpMiddleware)
-app.use('/uploads/avatars', express.static(config.persistence.avatarDir, { maxAge: '1h' }))
+app.use('/uploads/avatars', express.static(config.persistence.avatarDir, { maxAge: '30d' }))
 
 // Socket.IO with typed events
 const io = new Server<ClientToServerEvents, ServerToClientEvents, Record<string, never>, SocketData>(httpServer, {

@@ -3,6 +3,7 @@ import path from 'node:path'
 import type { UserProfile } from '@music-together/shared'
 import { getDatabase } from '../persistence/database.js'
 import { config } from '../config.js'
+import type { PasswordHashRecord } from '../services/passwordService.js'
 
 interface UserRow {
   id: string
@@ -14,9 +15,23 @@ interface UserRow {
   last_seen_at: number | null
 }
 
+interface PasswordRow {
+  user_id: string
+  salt: string
+  hash: string
+  params_json: string
+  created_at: number
+  updated_at: number
+}
+
 function toAvatarUrl(row: Pick<UserRow, 'avatar_kind' | 'avatar_value' | 'updated_at'>): string | null {
   if (row.avatar_kind !== 'uploaded' || !row.avatar_value) return null
   return `/uploads/avatars/${encodeURIComponent(row.avatar_value)}?v=${row.updated_at}`
+}
+
+function hasPassword(userId: string): boolean {
+  const row = getDatabase().prepare('SELECT user_id FROM user_passwords WHERE user_id = ?').get(userId) as { user_id: string } | undefined
+  return Boolean(row)
 }
 
 function toProfile(row: UserRow): UserProfile {
@@ -24,6 +39,7 @@ function toProfile(row: UserRow): UserProfile {
     id: row.id,
     nickname: row.nickname,
     avatarUrl: toAvatarUrl(row),
+    hasPassword: hasPassword(row.id),
   }
 }
 
@@ -40,7 +56,7 @@ class UserRepository {
           last_seen_at = excluded.last_seen_at
       `)
       .run({ id: userId, nickname: nickname.trim(), now })
-    return this.getProfile(userId) ?? { id: userId, nickname: nickname.trim(), avatarUrl: null }
+    return this.getProfile(userId) ?? { id: userId, nickname: nickname.trim(), avatarUrl: null, hasPassword: false }
   }
 
   getProfile(userId: string): UserProfile | null {
@@ -90,6 +106,37 @@ class UserRepository {
     if (oldRow?.avatar_kind === 'uploaded' && oldRow.avatar_value) {
       this.deleteAvatarFile(oldRow.avatar_value)
     }
+    return this.getProfile(userId)!
+  }
+
+  hasPassword(userId: string): boolean {
+    return hasPassword(userId)
+  }
+
+  getPasswordRecord(userId: string): PasswordHashRecord | null {
+    const row = getDatabase().prepare('SELECT * FROM user_passwords WHERE user_id = ?').get(userId) as PasswordRow | undefined
+    if (!row) return null
+    return {
+      salt: row.salt,
+      hash: row.hash,
+      paramsJson: row.params_json,
+    }
+  }
+
+  setPassword(userId: string, record: PasswordHashRecord): UserProfile {
+    this.ensureUser(userId)
+    const now = Date.now()
+    getDatabase()
+      .prepare(`
+        INSERT INTO user_passwords (user_id, salt, hash, params_json, created_at, updated_at)
+        VALUES (@userId, @salt, @hash, @paramsJson, @now, @now)
+        ON CONFLICT(user_id) DO UPDATE SET
+          salt = excluded.salt,
+          hash = excluded.hash,
+          params_json = excluded.params_json,
+          updated_at = excluded.updated_at
+      `)
+      .run({ userId, salt: record.salt, hash: record.hash, paramsJson: record.paramsJson, now })
     return this.getProfile(userId)!
   }
 

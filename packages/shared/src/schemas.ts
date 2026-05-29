@@ -24,6 +24,7 @@ export const roomSettingsSchema = z.object({
   name: z.string().min(1).max(LIMITS.ROOM_NAME_MAX_LENGTH).optional(),
   password: z.string().max(LIMITS.ROOM_PASSWORD_MAX_LENGTH).nullable().optional(),
   audioQuality: audioQualitySchema.optional(),
+  isHidden: z.boolean().optional(),
 })
 
 export const setRoleSchema = z.object({
@@ -33,6 +34,16 @@ export const setRoleSchema = z.object({
 
 export const userProfileUpdateSchema = z.object({
   nickname: z.string().min(1, '昵称不能为空').max(LIMITS.NICKNAME_MAX_LENGTH, '昵称过长').optional(),
+})
+
+export const userPasswordUpdateSchema = z.object({
+  password: z.string().min(1, '密码不能为空'),
+  currentPassword: z.string().optional(),
+})
+
+export const passwordLoginSchema = z.object({
+  accountId: z.string().min(1, '账号 ID 不能为空'),
+  password: z.string().min(1, '密码不能为空'),
 })
 
 // ---------------------------------------------------------------------------

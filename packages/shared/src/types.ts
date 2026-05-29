@@ -71,6 +71,7 @@ export interface RoomState {
   creatorId: string
   hostId: string
   hasPassword: boolean
+  isHidden: boolean
   /** 密码明文（仅房主可见） */
   password?: string | null
   audioQuality: AudioQuality
@@ -120,6 +121,7 @@ export interface UserProfile {
   id: string
   nickname: string
   avatarUrl?: string | null
+  hasPassword: boolean
 }
 
 export interface ChatMessage {

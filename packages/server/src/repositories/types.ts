@@ -11,6 +11,7 @@ export interface RoomData {
   /** 持久化 admin 用户 ID 集合（离开/回来自动恢复 admin） */
   adminUserIds: Set<string>
   audioQuality: AudioQuality
+  isHidden: boolean
   users: User[]
   members: RoomMember[]
   queue: Track[]

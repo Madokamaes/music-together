@@ -86,6 +86,7 @@ interface RoomState {
   creatorId: string
   hostId: string
   hasPassword: boolean
+  isHidden: boolean // 隐藏后不出现在大厅，但完整房间号/邀请链接仍可加入
   password?: string | null // 仅房主可见
   audioQuality: AudioQuality
   users: User[] // 当前在线用户
@@ -280,9 +281,11 @@ Host（房主）**自适应频率**上报当前播放位置到服务端：新曲
 14. **大厅重连刷新**：`useLobby` 监听 socket `connect` 事件，断线重连后自动重新拉取房间列表
 15. **投票执行**：`VOTE_CAST` / `VOTE_START` 中 `executeAction` 使用 `await` 确保动作完成后才广播 `VOTE_RESULT`。投票的 `next`/`prev` 通过 `playerService.playNextTrackInRoom` / `playPrevTrackInRoom`（`skipDebounce: true`）执行，与直接操作路径完全一致（含 stopPlayback 兜底和播放失败重试），且不受 debounce 影响
 16. **密码安全隔离**：`toPublicRoomState()` 默认不含密码明文；`toPublicRoomStateForOwner()` 仅在发送给 owner 的 socket 时使用（创建房间、加入房间、设置变更、conductor 变更）。非 owner 成员仅能看到 `hasPassword` 布尔标记，无法获取密码明文。设置广播通过 `socket.emit`（owner） + `socket.to(roomId).emit`（其他成员）分别发送。owner 离开导致 conductor 变更时，通过 `roomRepo.getSocketIdForUser()` 反查新 owner 的 socketId 定向发送含密码版本
-17. **SQLite 写入与恢复**：运行中仍使用 `roomRepo`/`chatRepo` 服务实时 Socket 状态；房间、成员、队列、播放、聊天、用户资料、听歌事件同步写入 SQLite。服务启动时先跑迁移，再把未软删除房间恢复到内存，并将成员统一标记为离线。
+17. **SQLite 写入与恢复**：运行中仍使用 `roomRepo`/`chatRepo` 服务实时 Socket 状态；房间、成员、队列、播放、聊天、用户资料、账号密码哈希、听歌事件同步写入 SQLite。服务启动时先跑迁移，再把未软删除房间恢复到内存，并将成员统一标记为离线。
 18. **听歌统计语义**：`playerService` 在成功解析 stream URL 并开始播放时写入 `listening_events`，并把当时在线的 `room.users` 写入 `listening_event_users`。暂停、恢复、seek 和 sync 不创建统计事件。
-19. **头像语义**：上传头像存放在 `AVATAR_DIR`，通过 `/uploads/avatars/*` 静态路由访问；没有上传头像时 `avatarUrl` 为 null，前端根据 userId/nickname 生成默认渐变头像。
+19. **头像语义**：上传头像允许 PNG/JPEG/WebP、最大 5MB；服务端会统一转为 256x256 WebP 存放在 `AVATAR_DIR`，通过 `/uploads/avatars/*` 静态路由访问；没有上传头像时 `avatarUrl` 为 null，前端根据 userId/nickname 生成默认渐变头像。
+20. **账号密码语义**：现有 `users.id` 即账号 ID；用户可首次设置非空密码，密码不做字符复杂度限制且不在前端持久化。服务端使用随机盐 + scrypt 哈希保存；账号 ID + 密码登录会重新签发 identity cookie，用于换浏览器/设备找回同一账号。由于无法可靠确认发起者是否为账号本人，已设置密码后暂不支持重置或修改。
+21. **隐藏房间与邀请链接**：`room.isHidden` 只影响公开发现，隐藏房间会从 `room:list` / `room:list_update` 的大厅列表中过滤；完整 `/room/:roomId` 邀请链接和直接输入完整房间号仍可加入，且密码校验/成员免密规则保持不变。
 
 ## REST API
 
@@ -296,8 +299,10 @@ Host（房主）**自适应频率**上报当前播放位置到服务端：新曲
 | `/api/rooms/:roomId/check` | GET  | 房间预检（存在性 + 是否需要密码），用于分享链接直接访问时的前置校验                                     |
 | `/api/users/me`            | GET  | 获取当前 cookie 身份对应的用户资料                                                                      |
 | `/api/users/me`            | PATCH | 更新当前用户昵称                                                                                       |
-| `/api/users/me/avatar`     | POST | 上传当前用户头像（PNG/JPEG/WebP，最大 1MB）                                                             |
+| `/api/users/me/avatar`     | POST | 上传当前用户头像（PNG/JPEG/WebP，最大 5MB，服务端转 256x256 WebP）                                      |
 | `/api/users/me/avatar`     | DELETE | 重置当前用户头像                                                                                      |
+| `/api/users/me/password`   | PUT  | 首次设置当前账号密码；已有密码时拒绝重置或修改                                                          |
+| `/api/auth/password/login` | POST | 使用账号 ID + 密码找回账号并重新签发 identity cookie                                                   |
 | `/api/health`              | GET  | 健康检查                                                                                                |
 
 ---

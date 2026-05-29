@@ -142,7 +142,7 @@ src/
     ├── resetStores.ts          #   全局 store 重置工具
     ├── socket.ts               #   Socket.IO 客户端实例
     ├── storage.ts              #   localStorage 封装（带类型校验，缓存身份/昵称/头像 URL）
-    ├── profileApi.ts           #   当前应用用户资料 REST API（昵称、头像上传/重置）
+    ├── profileApi.ts           #   当前应用用户资料 REST API（昵称、头像上传/重置、账号密码、密码登录）
     ├── platform.ts             #   平台常量（PLATFORM_LABELS / PLATFORM_SHORT_LABELS / PLATFORM_COLORS / VIP_LABELS / 状态查找函数）
     ├── format.ts               #   格式化工具（时间、文本等）
     ├── audioUnlock.ts          #   浏览器音频自动播放解锁
@@ -185,7 +185,7 @@ src/
 │   ├── types.ts                #   接口定义（RoomRepository, ChatRepository）
 │   ├── roomRepository.ts       #   房间数据 + Socket 映射 + per-socket RTT + roomToSockets 反向索引（Map<string, RoomData>）
 │   ├── chatRepository.ts       #   聊天记录（内存缓存 + SQLite 历史）
-│   ├── userRepository.ts       #   Cookie 身份对应的持久用户资料与头像 URL
+│   ├── userRepository.ts       #   Cookie 身份对应的持久用户资料、头像 URL 与密码哈希记录
 │   ├── persistentRoomRepository.ts # SQLite 房间/成员/队列/播放状态持久化与启动恢复
 │   └── listeningStatsRepository.ts # 播放开始事件与在线用户快照统计
 │
@@ -202,7 +202,8 @@ src/
 ├── routes/                     # Express REST 路由
 │   ├── music.ts                #   GET /api/music/search|url|lyric|cover|playlist|ttml（统一 validated() 路由包装器消除重复 try/catch + Zod 模式）
 │   ├── rooms.ts                #   GET /api/rooms/:roomId/check（房间预检）
-│   └── users.ts                #   GET/PATCH /api/users/me + 头像上传/重置
+│   ├── auth.ts                 #   identity bootstrap + 账号 ID/密码登录
+│   └── users.ts                #   GET/PATCH /api/users/me + 头像上传/重置 + 密码设置/修改
 │
 ├── types/
 │   └── meting.d.ts             #   @meting/core 类型声明

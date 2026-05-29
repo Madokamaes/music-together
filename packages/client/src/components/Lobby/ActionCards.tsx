@@ -51,11 +51,11 @@ export function ActionCards({
             </div>
             <h2 className="text-[17px] font-semibold tracking-[-0.02em] text-foreground">加入房间</h2>
           </div>
-          <p className="text-[13px] leading-[1.7] text-muted-foreground">输入房间号直接加入已有房间</p>
+          <p className="text-[13px] leading-[1.7] text-muted-foreground">输入房间号或粘贴邀请链接加入已有房间</p>
         </div>
         <div className="flex gap-2">
           <Input
-            placeholder="输入房间号..."
+            placeholder="房间号或邀请链接..."
             value={directRoomId}
             onChange={(e) => onDirectRoomIdChange(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && onDirectJoin()}

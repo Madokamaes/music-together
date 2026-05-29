@@ -27,7 +27,7 @@ Docker 容器 (:3001)
 
 ## 持久化数据
 
-房间、成员、聊天、用户资料、头像和听歌统计保存在 SQLite 与 `/app/data` 目录下：
+房间、成员、聊天、用户资料、账号密码哈希、头像和听歌统计保存在 SQLite 与 `/app/data` 目录下：
 
 - `DATA_DIR=/app/data`
 - `DATABASE_PATH=/app/data/music-together.sqlite`（默认）

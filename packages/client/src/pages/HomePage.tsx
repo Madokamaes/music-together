@@ -21,6 +21,12 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 
+function extractRoomId(input: string): string {
+  const trimmed = input.trim()
+  const match = trimmed.match(/(?:^|\/)room\/([A-Za-z0-9_-]{1,20})(?:[/?#]|$)/)
+  return match?.[1] ?? trimmed
+}
+
 export default function HomePage() {
   const navigate = useNavigate()
   const { socket } = useSocketContext()
@@ -184,19 +190,20 @@ export default function HomePage() {
 
   const handleDirectJoin = async () => {
     if (actionLoading) return
-    if (!directRoomId.trim()) {
-      toast.error('请输入房间号')
+    const targetRoomId = extractRoomId(directRoomId)
+    if (!targetRoomId) {
+      toast.error('请输入房间号或邀请链接')
       return
     }
     if (!savedNickname) {
-      pendingJoinRef.current = { type: 'direct', roomId: directRoomId.trim() }
+      pendingJoinRef.current = { type: 'direct', roomId: targetRoomId }
       setNicknameDialogOpen(true)
       return
     }
     await unlockAudio()
-    lastJoinedRoomIdRef.current = directRoomId.trim()
+    lastJoinedRoomIdRef.current = targetRoomId
     setActionLoading(true)
-    joinRoom(directRoomId.trim(), savedNickname)
+    joinRoom(targetRoomId, savedNickname)
   }
 
   /** Called after the user sets their nickname in NicknameDialog */

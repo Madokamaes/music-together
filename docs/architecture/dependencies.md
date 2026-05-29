@@ -44,13 +44,14 @@
 | dotenv                            | ^16.4.5 | 环境变量                                                            |
 | zod                               | ^4.3.6  | 请求数据验证（配合 shared schemas）                                 |
 | pino                              | ^10.3.1 | 结构化日志                                                          |
-| rate-limiter-flexible             | ^9.1.1  | 聊天限流                                                            |
+| rate-limiter-flexible             | ^9.1.1  | 聊天与账号密码登录限流                                              |
 | @neteasecloudmusicapienhanced/api | ^4.30.1 | 网易云 QR 登录 / Cookie 验证 / 用户信息                             |
 | qrcode                            | ^1.5.4  | QR 码生成（酷狗扫码登录，API 仅返回 URL 需服务端转 base64 DataURL） |
 | escape-html                       | ^1.0.3  | HTML 转义（防注入）                                                 |
 | p-limit                           | ^7.3.0  | 并发控制（封面批量解析）                                            |
 | lru-cache                         | ^11.2.6 | LRU 缓存（musicProvider 外部 API 结果缓存）                         |
 | better-sqlite3                    | ^12.10.0 | SQLite 持久化（房间、成员、聊天、用户资料、听歌统计）               |
+| sharp                             | ^0.34.5 | 头像上传归一化、压缩与 WebP 转码                                      |
 
 ## Shared 核心依赖
 

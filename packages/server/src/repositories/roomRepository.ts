@@ -39,7 +39,7 @@ export class InMemoryRoomRepository implements RoomRepository {
   }
 
   getAllAsList(): RoomListItem[] {
-    return Array.from(this.rooms.values()).map((room) => ({
+    return Array.from(this.rooms.values()).filter((room) => !room.isHidden).map((room) => ({
       id: room.id,
       name: room.name,
       hasPassword: room.password !== null,

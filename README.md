@@ -1,135 +1,91 @@
-<p align="center">
-  <img alt="Music Together" src="public/logo.svg" width="80">
-</p>
+# Music Together
 
-<h1 align="center">Music Together</h1>
+Music Together 是一个已经面向自托管场景改造过的在线多人同步听歌平台。它不再只是临时房间演示应用，而是支持长期运行的房间、持久用户资料、头像、聊天记录和听歌统计。
 
-<p align="center">
-  在线多人同步听歌平台 -- 创建房间，邀请朋友，一起实时听同一首歌。
-</p>
+## 当前分叉的主要能力
 
-<p align="center">
-  <a href="README.en.md">English</a>
-</p>
+- **永久房间**：房间会持久化到 SQLite，房主主动解散前不会因为没人在线或服务重启而消失。
+- **成员离线保留**：加入过房间的用户会保留在成员名单中，离开后显示为离线。
+- **隐藏房间与邀请链接**：房主可隐藏房间；隐藏后不出现在大厅，但完整房间号或 `/room/:roomId` 邀请链接仍可加入，房间密码规则不变。
+- **持久用户资料**：用户身份由 HttpOnly identity cookie 识别，昵称和头像持久化到数据库。
+- **账号 ID + 密码找回**：用户可为当前账号首次设置密码，并保存账号 ID；换浏览器或丢失 cookie 后可用账号 ID + 密码找回同一身份。已设置密码后暂不支持重置或修改，因为服务端无法可靠确认操作者就是账号本人。
+- **头像压缩**：头像支持 PNG/JPEG/WebP 上传，最大 5MB；服务端统一裁剪压缩为 256x256 WebP，前端无头像时生成默认渐变头像。
+- **听歌统计**：歌曲开始播放时记录房间、歌曲信息和当时在线用户快照，为后续年度总结等功能保留数据。
+- **同步播放与聊天**：Socket.IO 实时同步播放状态、队列、投票、聊天和房间成员状态。
+- **多音源与 VIP Cookie 池**：支持网易云、QQ 音乐、酷狗搜索/播放；平台 Cookie 用于 VIP 播放共享和私有歌单读取。
 
-<p align="center">
-  <a href="https://github.com/Madokamaes/music-together/stargazers"><img src="https://img.shields.io/github/stars/Madokamaes/music-together?style=flat&logo=github" alt="Stars"></a>
-  <a href="https://github.com/Madokamaes/music-together/network/members"><img src="https://img.shields.io/github/forks/Madokamaes/music-together?style=flat&logo=github" alt="Forks"></a>
-  <a href="https://github.com/Madokamaes/music-together/issues"><img src="https://img.shields.io/github/issues/Madokamaes/music-together?style=flat&logo=github" alt="Issues"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/github/license/Madokamaes/music-together?style=flat" alt="License"></a>
-</p>
+## 技术栈
 
-<p align="center">
-  <img src="https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white" alt="React">
-  <img src="https://img.shields.io/badge/Vite-7-646CFF?logo=vite&logoColor=white" alt="Vite">
-  <img src="https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss&logoColor=white" alt="Tailwind CSS">
-  <img src="https://img.shields.io/badge/Socket.IO-4-010101?logo=socketdotio&logoColor=white" alt="Socket.IO">
-  <img src="https://img.shields.io/badge/Express-4-000000?logo=express&logoColor=white" alt="Express">
-  <img src="https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white" alt="Docker">
-</p>
+- 前端：React 19、Vite 7、TypeScript、Tailwind CSS v4、shadcn/ui、Zustand
+- 后端：Node.js、Express 4、Socket.IO 4、SQLite (`better-sqlite3`)、Sharp
+- Monorepo：pnpm workspaces，包含 `packages/client`、`packages/server`、`packages/shared`
 
-## 截图
-
-### 桌面端
-
-|            首页            |            搜索            |            播放            |            聊天            |
-| :------------------------: | :------------------------: | :------------------------: | :------------------------: |
-| ![首页](screenshots/1.png) | ![搜索](screenshots/2.png) | ![播放](screenshots/3.png) | ![聊天](screenshots/4.png) |
-
-### 移动端
-
-|             首页             |             搜索             |             播放             |             聊天             |
-| :--------------------------: | :--------------------------: | :--------------------------: | :--------------------------: |
-| ![首页](screenshots/1_m.png) | ![搜索](screenshots/2_m.png) | ![播放](screenshots/3_m.png) | ![聊天](screenshots/4_m.png) |
-
-### 歌词展示对比
-
-|            桌面端歌词            |         竖屏默认（封面）         |           竖屏歌词模式            |
-| :------------------------------: | :------------------------------: | :-------------------------------: |
-| ![桌面端歌词](screenshots/3.png) | ![竖屏默认](screenshots/3_m.png) | ![竖屏歌词](screenshots/3_m1.png) |
-
-## 功能特性
-
-- **实时同步播放** -- 基于 NTP 时钟同步 + 定时执行，延迟极低
-- **多平台音源** -- 支持网易云音乐、QQ 音乐搜索与播放
-- **Apple Music 风格歌词** -- 逐词高亮动画歌词，桌面端/移动端自适应
-- **VIP 歌曲支持** -- 网易云 QR 登录贡献 Cookie，解锁 VIP 曲目（房间级作用域）
-- **权限管理 (RBAC)** -- 房主 > 管理员 > 普通成员，细粒度权限控制
-- **投票系统** -- 普通成员通过投票控制切歌、暂停等操作
-- **播放模式** -- 顺序播放、单曲循环、列表循环、随机播放
-- **实时聊天** -- 房间内文字聊天，支持系统消息
-- **角色宽限期** -- 特权用户断线后保留角色 30 秒，重连自动恢复
-- **移动端适配** -- 响应式设计，横竖屏自动切换布局
-
-## 快速开始
-
-### 环境要求
-
-- Node.js >= 22
-- pnpm >= 10
-
-### 安装与开发
+## 本地开发
 
 ```bash
 git clone https://github.com/Madokamaes/music-together.git
 cd music-together
-pnpm install
-pnpm dev
+corepack enable
+corepack pnpm install
+corepack pnpm dev
 ```
 
-前端: http://localhost:5173 | 后端: http://localhost:3001
+本地默认端口：
+
+- 前端：`http://localhost:5173`
+- 后端：`http://localhost:3001`
+
+如果当前 shell 找不到裸 `pnpm`，可以直接使用 `corepack pnpm` 执行命令。
+
+## 常用验证命令
+
+```bash
+corepack pnpm --dir "D:/music-together/packages/shared" exec tsc -p tsconfig.build.json --noEmit
+corepack pnpm --dir "D:/music-together/packages/server" exec tsc --noEmit
+corepack pnpm --dir "D:/music-together" --filter @music-together/client run typecheck
+```
+
+分包构建：
+
+```bash
+corepack pnpm --dir "D:/music-together" --filter @music-together/shared run build
+corepack pnpm --dir "D:/music-together" --filter @music-together/server run build
+corepack pnpm --dir "D:/music-together" --filter @music-together/client run build
+```
 
 ## 部署
 
-Docker 单镜像部署：
+当前部署目标是单镜像 Node.js 服务：Express 同时提供 REST API、Socket.IO 和前端 SPA 静态文件。
 
 ```bash
 docker run -d --name music-together --restart unless-stopped \
   -p 3001:3001 \
+  -v music-together-data:/app/data \
+  -e IDENTITY_SECRET='replace-with-a-stable-secret' \
   ghcr.io/madokamaes/music-together:latest
 ```
 
-> 如果宿主机 `3001` 端口已被占用，修改 `-p 宿主机端口:容器端口` 左侧端口即可，例如 `-p 8080:3001`。
+必须挂载 `/app/data`，否则容器重建会丢失 SQLite 数据库和头像文件。生产环境必须固定 `IDENTITY_SECRET`；更换它会让已有用户 cookie 失效。
 
-默认自动模式下，前端会按当前访问地址自动连接后端；服务端默认开放所有来源访问，并根据当前请求协议自动决定 cookie 是否带 `Secure`。
+默认情况下前端按当前页面 origin 连接后端，服务端 CORS 处于自动模式。需要显式白名单时再配置 `CLIENT_URL`。
 
-**需要显式限制来源时，再配置 `CLIENT_URL`：**
+## 数据持久化
 
-```bash
-docker run -d --name music-together --restart unless-stopped \
-  -p 3001:3001 \
-  -e CLIENT_URL=https://music.example.com \
-  ghcr.io/madokamaes/music-together:latest
-```
+默认持久化路径：
 
-> `CLIENT_URL` 现在主要用于显式白名单模式或前后端分离部署；默认自动模式下通常不再需要手动设置。
->
-> 如果你通过 Nginx / Caddy / 1Panel / Lucky 等反向代理暴露 HTTPS，请确保代理正确透传 `X-Forwarded-Proto`，否则服务端无法自动判断应该下发 Secure cookie。
+- `DATA_DIR=/app/data`
+- `DATABASE_PATH=/app/data/music-together.sqlite`
+- `AVATAR_DIR=/app/data/avatars`
 
-push 到 main 后 GitHub Actions 自动构建镜像。详见 [架构文档](docs/PROJECT_ARCHITECTURE.md)。
+SQLite 保存房间、成员、聊天、用户资料、账号密码哈希和听歌统计；头像文件保存在 `AVATAR_DIR`。
 
-## 项目结构
+## 文档
 
-```
-packages/
-  client/   -- 前端 React 应用
-  server/   -- 后端 Node.js 服务
-  shared/   -- 共享类型、常量与权限定义
-```
+详细架构文档见：
 
-## 致谢
-
-| 库                                                                                            | 说明               |
-| --------------------------------------------------------------------------------------------- | ------------------ |
-| [Howler.js](https://github.com/goldfire/howler.js)                                            | Web 音频播放       |
-| [Apple Music-like Lyrics](https://github.com/Steve-xmh/applemusic-like-lyrics)                | 歌词组件 (GPL-3.0) |
-| [Meting](https://github.com/metowolf/Meting)                                                  | 多平台音乐 API     |
-| [NeteaseCloudMusicApi Enhanced](https://github.com/NeteaseCloudMusicApiEnhanced/api-enhanced) | 网易云音乐 API     |
-| [CASL](https://github.com/stalniy/casl)                                                       | 权限管理           |
-| [Zustand](https://github.com/pmndrs/zustand)                                                  | 状态管理           |
-| [shadcn/ui](https://github.com/shadcn-ui/ui)                                                  | UI 组件库          |
-| [Motion](https://github.com/motiondivision/motion)                                            | 动画库             |
-| [qq-music-download](https://github.com/tooplick/qq-music-download)                            | QQ 音乐登录参考    |
+- [项目速查手册](docs/PROJECT_ARCHITECTURE.md)
+- [数据流与 API](docs/architecture/data-flow.md)
+- [部署说明](docs/architecture/deployment.md)
 
 ## 协议
 

@@ -9,6 +9,7 @@ export function toPublicRoomState(data: RoomData): RoomState {
     creatorId: data.creatorId,
     hostId: data.hostId,
     hasPassword: data.password !== null,
+    isHidden: data.isHidden,
     audioQuality: data.audioQuality,
     users: data.users,
     members: data.members,

@@ -87,6 +87,24 @@ const MIGRATIONS: Array<{ version: number; statements: string[] }> = [
       `CREATE INDEX IF NOT EXISTS idx_listening_event_users_user ON listening_event_users(user_id)`,
     ],
   },
+  {
+    version: 2,
+    statements: [`ALTER TABLE rooms ADD COLUMN is_hidden INTEGER NOT NULL DEFAULT 0`],
+  },
+  {
+    version: 3,
+    statements: [
+      `CREATE TABLE IF NOT EXISTS user_passwords (
+        user_id TEXT PRIMARY KEY,
+        salt TEXT NOT NULL,
+        hash TEXT NOT NULL,
+        params_json TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        FOREIGN KEY (user_id) REFERENCES users(id)
+      )`,
+    ],
+  },
 ]
 
 export function runMigrations(): void {

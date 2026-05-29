@@ -111,7 +111,7 @@ export function AudioPlayer({
     <div className="relative flex h-full flex-col overflow-hidden">
       {/* AMLL fluid dynamic background powered by pixi.js */}
       {proxiedCover && (
-        <div className="pointer-events-none absolute inset-0 z-0 opacity-80 saturate-[1.3]">
+        <div className="pointer-events-none absolute inset-0 z-0 opacity-65 saturate-[1.15]">
           <BackgroundRender
             album={proxiedCover}
             playing

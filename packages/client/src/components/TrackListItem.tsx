@@ -30,7 +30,7 @@ export const TrackListItem = memo(function TrackListItem({
   return (
     <div
       style={style}
-      className={cn('group flex items-center gap-3 px-3 py-2.5 transition-colors hover:bg-muted/50', className)}
+      className={cn('group grid grid-cols-[auto_1fr_auto_auto] items-center gap-3 rounded-2xl border border-transparent bg-white/[0.035] px-3 py-3 transition-colors hover:border-border', className)}
     >
       {/* Index */}
       <span className="w-6 shrink-0 text-center text-xs tabular-nums text-muted-foreground">{index + 1}</span>
@@ -39,8 +39,8 @@ export const TrackListItem = memo(function TrackListItem({
       {track.cover ? (
         <img src={track.cover} alt="" className="h-10 w-10 shrink-0 rounded object-cover" loading="lazy" />
       ) : (
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded bg-muted">
-          <Music2 className="h-4 w-4 text-muted-foreground" />
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/5">
+          <Music2 className="h-4 w-4 text-primary/70" />
         </div>
       )}
 

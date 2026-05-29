@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>搜索点歌 · Music Together</title>
+    <link rel="stylesheet" href="./music-together-preview.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="header">
+        <div class="container header-inner">
+          <a class="brand" href="./room.html"><span class="brand-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3z"/><path d="M3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/></svg></span><span class="brand-title">搜索点歌</span></a>
+          <a class="btn btn-secondary" href="./room.html">返回房间</a>
+        </div>
+      </header>
+
+      <main class="container search-layout">
+        <section class="card dialog-card" aria-labelledby="search-title">
+          <div class="dialog-head">
+            <h2 id="search-title">搜索点歌</h2>
+            <div class="source-tabs" aria-label="音源">
+              <span class="active">网易云</span><span>QQ</span><span>酷狗</span>
+            </div>
+          </div>
+          <div class="dialog-body">
+            <div class="segmented" aria-label="搜索类型"><span class="active">单曲</span><span>专辑</span><span>歌单</span></div>
+            <div class="search-row" style="margin-top: 14px">
+              <input class="input" placeholder="搜索歌曲、歌手..." value="偏爱" />
+              <button class="btn btn-primary" type="button">搜索</button>
+            </div>
+            <div class="result-list">
+              <div class="result-item"><div><strong>偏爱</strong><span>张芸京 · 仙剑奇侠传三 电视原声带</span></div><button class="btn btn-secondary" type="button">添加</button></div>
+              <div class="result-item"><div><strong>此生不换</strong><span>青鸟飞鱼 · 仙剑奇侠传三 电视原声带</span></div><button class="btn btn-secondary" type="button">添加</button></div>
+              <div class="result-item"><div><strong>生生世世爱</strong><span>吴雨霏 · 仙剑奇侠传三 电视原声带</span></div><button class="btn btn-secondary" type="button">添加</button></div>
+              <div class="result-item"><div><strong>光棍</strong><span>胡歌 · 仙剑奇侠传三 电视原声带</span></div><button class="btn btn-secondary" type="button">添加</button></div>
+            </div>
+          </div>
+        </section>
+
+        <aside class="card dialog-card" aria-label="播放列表">
+          <div class="queue-header"><strong>播放列表 (5)</strong><button class="btn btn-ghost btn-icon" type="button">⌫</button></div>
+          <div class="queue-list">
+            <div class="queue-item active"><span class="queue-index">1</span><div class="queue-text"><strong>偏爱</strong><span>张芸京</span></div><span>播放中</span></div>
+            <div class="queue-item"><span class="queue-index">2</span><div class="queue-text"><strong>此生不换</strong><span>青鸟飞鱼</span></div><span>⋯</span></div>
+            <div class="queue-item"><span class="queue-index">3</span><div class="queue-text"><strong>生生世世爱</strong><span>吴雨霏</span></div><span>⋯</span></div>
+            <div class="queue-item"><span class="queue-index">4</span><div class="queue-text"><strong>后来</strong><span>刘若英</span></div><span>⋯</span></div>
+            <div class="queue-item"><span class="queue-index">5</span><div class="queue-text"><strong>慢冷</strong><span>梁静茹</span></div><span>⋯</span></div>
+          </div>
+        </aside>
+      </main>
+    </div>
+  </body>
+</html>

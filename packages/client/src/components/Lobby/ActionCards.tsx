@@ -26,32 +26,32 @@ export function ActionCards({
       className="mb-10 grid gap-4 sm:grid-cols-2"
     >
       {/* Create room card */}
-      <div className="flex flex-col justify-between rounded-xl border border-border bg-card p-5">
-        <div className="mb-4">
-          <div className="mb-2 flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-              <Home className="h-4 w-4 text-primary" />
+      <div className="mt-card flex min-h-[188px] flex-col justify-between rounded-[22px] p-5">
+        <div className="mb-5">
+          <div className="mb-3 flex items-center gap-3">
+            <div className="mt-icon-box h-[42px] w-[42px]">
+              <Home className="h-5 w-5" />
             </div>
-            <h2 className="text-base font-semibold text-foreground">创建房间</h2>
+            <h2 className="text-[17px] font-semibold tracking-[-0.02em] text-foreground">创建房间</h2>
           </div>
-          <p className="text-xs text-muted-foreground">新建一个房间，分享房间号邀请朋友加入</p>
+          <p className="text-[13px] leading-[1.7] text-muted-foreground">新建一个房间，分享房间号邀请朋友加入</p>
         </div>
         <Button onClick={onCreateClick} className="w-full">
-          <Home className="mr-2 h-4 w-4" />
+          <Home className="mr-1 h-4 w-4" />
           创建房间
         </Button>
       </div>
 
       {/* Join room card */}
-      <div className="flex flex-col justify-between rounded-xl border border-border bg-card p-5">
-        <div className="mb-4">
-          <div className="mb-2 flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-              <LogIn className="h-4 w-4 text-primary" />
+      <div className="mt-card flex min-h-[188px] flex-col justify-between rounded-[22px] p-5">
+        <div className="mb-5">
+          <div className="mb-3 flex items-center gap-3">
+            <div className="mt-icon-box h-[42px] w-[42px]">
+              <LogIn className="h-5 w-5" />
             </div>
-            <h2 className="text-base font-semibold text-foreground">加入房间</h2>
+            <h2 className="text-[17px] font-semibold tracking-[-0.02em] text-foreground">加入房间</h2>
           </div>
-          <p className="text-xs text-muted-foreground">输入房间号直接加入已有房间</p>
+          <p className="text-[13px] leading-[1.7] text-muted-foreground">输入房间号直接加入已有房间</p>
         </div>
         <div className="flex gap-2">
           <Input
@@ -59,9 +59,9 @@ export function ActionCards({
             value={directRoomId}
             onChange={(e) => onDirectRoomIdChange(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && onDirectJoin()}
-            className="flex-1"
+            className="min-w-0 flex-1"
           />
-          <Button variant="secondary" onClick={onDirectJoin} disabled={actionLoading}>
+          <Button variant="secondary" onClick={onDirectJoin} disabled={actionLoading} className="px-5">
             加入
           </Button>
         </div>

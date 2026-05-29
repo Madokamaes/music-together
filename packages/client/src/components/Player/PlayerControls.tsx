@@ -150,8 +150,8 @@ export const PlayerControls = memo(function PlayerControls({
             className="w-full"
           />
           <div className="flex w-full justify-between">
-            <span className="text-xs text-white/50 tabular-nums">{formatTime(isSeeking ? seekTime : currentTime)}</span>
-            <span className="text-xs text-white/50 tabular-nums">{formatTime(duration)}</span>
+            <span className="text-xs text-muted-foreground tabular-nums">{formatTime(isSeeking ? seekTime : currentTime)}</span>
+            <span className="text-xs text-muted-foreground tabular-nums">{formatTime(duration)}</span>
           </div>
         </div>
 
@@ -165,7 +165,7 @@ export const PlayerControls = memo(function PlayerControls({
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-9 w-9 text-white/70 hover:bg-white/10"
+                    className="h-9 w-9 text-primary/80 hover:bg-primary/10 hover:text-primary"
                     onClick={handlePlayModeToggle}
                     disabled={!canSetMode && !canVote}
                     aria-label={modeConfig.label}
@@ -196,7 +196,7 @@ export const PlayerControls = memo(function PlayerControls({
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-9 w-9 text-white/70 hover:bg-white/10"
+                    className="h-9 w-9 text-primary/80 hover:bg-primary/10 hover:text-primary"
                     disabled={disabled || skipCooldown}
                     onClick={() => handleSkip(onPrev, 'prev')}
                     aria-label="上一首"
@@ -214,7 +214,7 @@ export const PlayerControls = memo(function PlayerControls({
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-14 w-14 rounded-full bg-white/20 text-white/90 hover:bg-white/30 hover:text-white"
+                    className="h-14 w-14 rounded-full bg-primary/18 text-primary shadow-[0_14px_36px_rgb(227_183_108/20%)] hover:bg-primary/28 hover:text-[#f3d79e]"
                     disabled={disabled || playCooldown}
                     onClick={handlePlayPause}
                     aria-label={isPlaying ? '暂停' : '播放'}
@@ -236,7 +236,7 @@ export const PlayerControls = memo(function PlayerControls({
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-9 w-9 text-white/70 hover:bg-white/10"
+                    className="h-9 w-9 text-primary/80 hover:bg-primary/10 hover:text-primary"
                     disabled={disabled || skipCooldown}
                     onClick={() => handleSkip(onNext, 'next')}
                     aria-label="下一首"
@@ -257,13 +257,13 @@ export const PlayerControls = memo(function PlayerControls({
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="relative h-9 w-9 text-white/70 hover:bg-white/10"
+                    className="relative h-9 w-9 text-primary/80 hover:bg-primary/10 hover:text-primary"
                     onClick={onOpenQueue}
                     aria-label="播放列表"
                   >
                     <ListMusic className="size-5" />
                     {queueLength > 0 && (
-                      <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-white/90 px-1 text-[10px] font-semibold leading-none text-black">
+                      <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold leading-none text-primary-foreground">
                         {queueLength > 99 ? '99+' : queueLength}
                       </span>
                     )}

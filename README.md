@@ -13,10 +13,10 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Yueby/music-together/stargazers"><img src="https://img.shields.io/github/stars/Yueby/music-together?style=flat&logo=github" alt="Stars"></a>
-  <a href="https://github.com/Yueby/music-together/network/members"><img src="https://img.shields.io/github/forks/Yueby/music-together?style=flat&logo=github" alt="Forks"></a>
-  <a href="https://github.com/Yueby/music-together/issues"><img src="https://img.shields.io/github/issues/Yueby/music-together?style=flat&logo=github" alt="Issues"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/github/license/Yueby/music-together?style=flat" alt="License"></a>
+  <a href="https://github.com/Madokamaes/music-together/stargazers"><img src="https://img.shields.io/github/stars/Madokamaes/music-together?style=flat&logo=github" alt="Stars"></a>
+  <a href="https://github.com/Madokamaes/music-together/network/members"><img src="https://img.shields.io/github/forks/Madokamaes/music-together?style=flat&logo=github" alt="Forks"></a>
+  <a href="https://github.com/Madokamaes/music-together/issues"><img src="https://img.shields.io/github/issues/Madokamaes/music-together?style=flat&logo=github" alt="Issues"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/Madokamaes/music-together?style=flat" alt="License"></a>
 </p>
 
 <p align="center">
@@ -71,7 +71,7 @@
 ### 安装与开发
 
 ```bash
-git clone https://github.com/Yueby/music-together.git
+git clone https://github.com/Madokamaes/music-together.git
 cd music-together
 pnpm install
 pnpm dev
@@ -86,7 +86,7 @@ Docker 单镜像部署：
 ```bash
 docker run -d --name music-together --restart unless-stopped \
   -p 3001:3001 \
-  ghcr.io/yueby/music-together:latest
+  ghcr.io/madokamaes/music-together:latest
 ```
 
 > 如果宿主机 `3001` 端口已被占用，修改 `-p 宿主机端口:容器端口` 左侧端口即可，例如 `-p 8080:3001`。
@@ -99,7 +99,7 @@ docker run -d --name music-together --restart unless-stopped \
 docker run -d --name music-together --restart unless-stopped \
   -p 3001:3001 \
   -e CLIENT_URL=https://music.example.com \
-  ghcr.io/yueby/music-together:latest
+  ghcr.io/madokamaes/music-together:latest
 ```
 
 > `CLIENT_URL` 现在主要用于显式白名单模式或前后端分离部署；默认自动模式下通常不再需要手动设置。

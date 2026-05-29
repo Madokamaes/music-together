@@ -21,23 +21,27 @@ export const RoomCard = memo(function RoomCard({ room, index, onClick }: RoomCar
       whileTap={{ scale: 0.98 }}
       onClick={onClick}
       className={cn(
-        'group relative flex w-full flex-col gap-3 overflow-hidden rounded-xl p-5 text-left',
-        'border border-border bg-card transition-all duration-300',
-        'hover:shadow-md hover:border-primary/20',
+        'group relative flex w-full flex-col gap-0 overflow-hidden rounded-[22px] p-4 text-left',
+        'mt-card transition-all duration-300',
+        'hover:border-primary/30 hover:shadow-[0_26px_90px_rgb(0_0_0/34%)]',
+        room.currentTrackTitle && 'border-primary/30 bg-[radial-gradient(circle_at_10%_0%,rgb(227_183_108/16%),transparent_12rem),linear-gradient(180deg,rgb(255_255_255/7.8%),rgb(255_255_255/2.8%)),rgb(28_36_50/92%)]',
       )}
     >
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
       {/* Room name row */}
       <div className="flex items-start justify-between">
         <div className="min-w-0 flex-1">
-          <h3 className="truncate text-base font-semibold text-foreground">{room.name}</h3>
-          {room.currentTrackTitle && (
-            <p className="mt-1 flex items-center gap-1.5 truncate text-xs text-muted-foreground">
+          <h3 className="truncate text-[15px] font-bold text-foreground">{room.name}</h3>
+          {room.currentTrackTitle ? (
+            <p className="mt-2 flex items-center gap-1.5 truncate text-xs text-muted-foreground">
               <Music className="h-3 w-3 shrink-0 text-primary" />
               <span className="truncate">
                 {room.currentTrackTitle}
                 {room.currentTrackArtist && ` - ${room.currentTrackArtist}`}
               </span>
             </p>
+          ) : (
+            <p className="mt-2 truncate text-xs text-muted-foreground">正在等待播放</p>
           )}
         </div>
 
@@ -49,7 +53,7 @@ export const RoomCard = memo(function RoomCard({ room, index, onClick }: RoomCar
               {[0, 1, 2].map((i) => (
                 <motion.div
                   key={i}
-                  className="w-0.5 rounded-full bg-primary/40"
+                  className="w-0.5 rounded-full bg-primary/60"
                   animate={prefersReducedMotion ? { height: 8 } : { height: [4, 12, 6, 10, 4] }}
                   transition={
                     prefersReducedMotion
@@ -65,21 +69,19 @@ export const RoomCard = memo(function RoomCard({ room, index, onClick }: RoomCar
               ))}
             </div>
           )}
-          {room.hasPassword ? (
-            <Lock className="h-4 w-4 text-muted-foreground/60" />
-          ) : (
-            <LockOpen className="h-4 w-4 text-muted-foreground/40" />
-          )}
+          <span className="inline-flex text-muted-foreground/60">
+            {room.hasPassword ? <Lock className="h-4 w-4" /> : <LockOpen className="h-4 w-4" />}
+          </span>
         </div>
       </div>
 
       {/* Bottom info */}
-      <div className="flex items-center gap-3">
-        <span className="flex items-center gap-1 text-xs text-muted-foreground">
+      <div className="mt-[18px] flex items-center justify-between gap-3 text-[11px] text-muted-foreground/70">
+        <span className="flex items-center gap-1 text-primary/90">
           <Users className="h-3 w-3" />
           {room.userCount}
         </span>
-        <span className="text-xs text-muted-foreground/50">{room.id}</span>
+        <span className="font-mono text-muted-foreground/60">{room.id}</span>
       </div>
     </motion.button>
   )

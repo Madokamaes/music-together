@@ -43,10 +43,10 @@ export function RoomHeader({ onOpenSearch, onOpenSettings, onOpenMembers, onLeav
   const rttColor = !isConnected
     ? 'text-destructive'
     : rtt < 100
-      ? 'text-emerald-500/60'
+      ? 'text-[#63c98f]'
       : rtt < 300
-        ? 'text-yellow-500/60'
-        : 'text-destructive/60'
+        ? 'text-primary/80'
+        : 'text-destructive/70'
 
   const copyRoomLink = () => {
     if (roomId) {
@@ -56,12 +56,12 @@ export function RoomHeader({ onOpenSearch, onOpenSettings, onOpenMembers, onLeav
   }
 
   return (
-    <header className="flex items-center justify-between border-b border-border/50 bg-background/95 px-2 py-2 backdrop-blur-sm sm:px-4">
+    <header className="flex min-h-14 items-center justify-between border-b border-border bg-background/80 px-2 py-0 backdrop-blur-[22px] sm:px-3">
       <div className="flex min-w-0 items-center gap-1.5 sm:gap-3">
         {roomId && (
           <>
             <span
-              className="max-w-[120px] cursor-pointer truncate text-sm font-semibold text-foreground active:opacity-70 sm:max-w-[200px] sm:cursor-default"
+              className="max-w-[128px] cursor-pointer truncate text-sm font-bold text-foreground active:opacity-70 sm:max-w-[190px] sm:cursor-default"
               onClick={copyRoomLink}
             >
               {roomName}
@@ -71,7 +71,7 @@ export function RoomHeader({ onOpenSearch, onOpenSettings, onOpenMembers, onLeav
                 <Button
                   variant="outline"
                   size="sm"
-                  className="hidden h-7 gap-1 border-border/50 px-2 font-mono text-xs sm:flex"
+                  className="hidden h-[30px] gap-1 rounded-[10px] border-border bg-white/[0.045] px-[9px] font-mono text-xs text-muted-foreground backdrop-blur-xl hover:text-primary sm:flex"
                   onClick={copyRoomLink}
                   aria-label="复制房间链接"
                 >
@@ -86,7 +86,7 @@ export function RoomHeader({ onOpenSearch, onOpenSettings, onOpenMembers, onLeav
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-7 gap-1 px-1.5 text-sm text-muted-foreground"
+                  className="h-7 gap-1 px-1.5 text-sm text-muted-foreground hover:text-primary"
                   onClick={onOpenMembers}
                   aria-label="查看成员"
                 >
@@ -102,7 +102,7 @@ export function RoomHeader({ onOpenSearch, onOpenSettings, onOpenMembers, onLeav
         <Tooltip>
           <TooltipTrigger asChild>
             <span
-              className="flex items-center gap-1"
+              className="inline-flex min-h-[30px] items-center gap-1.5 rounded-full border border-border bg-white/[0.045] px-[9px] font-mono text-xs backdrop-blur-xl"
               role="status"
               aria-live="polite"
               aria-label={isConnected ? `已连接 · 延迟 ${Math.round(rtt)}ms` : '连接断开，正在重连'}
@@ -127,7 +127,7 @@ export function RoomHeader({ onOpenSearch, onOpenSettings, onOpenMembers, onLeav
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 min-h-11 min-w-11 sm:min-h-0 sm:min-w-0"
+              className="h-8 w-8 min-h-11 min-w-11 text-muted-foreground hover:text-primary sm:min-h-0 sm:min-w-0"
               onClick={onOpenSearch}
               aria-label="搜索点歌"
             >
@@ -143,7 +143,7 @@ export function RoomHeader({ onOpenSearch, onOpenSettings, onOpenMembers, onLeav
             <Button
               variant="ghost"
               size="icon"
-              className="hidden h-8 w-8 min-h-11 min-w-11 sm:flex sm:min-h-0 sm:min-w-0"
+              className="hidden h-8 w-8 min-h-11 min-w-11 text-muted-foreground hover:text-primary sm:flex sm:min-h-0 sm:min-w-0"
               onClick={onOpenSettings}
               aria-label="设置"
             >
@@ -158,7 +158,7 @@ export function RoomHeader({ onOpenSearch, onOpenSettings, onOpenMembers, onLeav
             <Button
               variant="ghost"
               size="icon"
-              className="hidden h-8 w-8 min-h-11 min-w-11 sm:flex sm:min-h-0 sm:min-w-0"
+              className="hidden h-8 w-8 min-h-11 min-w-11 text-muted-foreground hover:text-primary sm:flex sm:min-h-0 sm:min-w-0"
               onClick={onLeaveRoom}
               aria-label="离开房间"
             >
@@ -174,7 +174,7 @@ export function RoomHeader({ onOpenSearch, onOpenSettings, onOpenMembers, onLeav
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 min-h-11 min-w-11 sm:hidden sm:min-h-0 sm:min-w-0"
+              className="h-8 w-8 min-h-11 min-w-11 text-muted-foreground hover:text-primary sm:hidden sm:min-h-0 sm:min-w-0"
               aria-label="更多操作"
             >
               <Ellipsis className="h-4 w-4" />

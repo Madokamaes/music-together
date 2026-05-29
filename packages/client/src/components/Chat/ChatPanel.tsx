@@ -52,11 +52,13 @@ export function ChatPanel() {
   }
 
   return (
-    <div className="flex min-h-0 w-full flex-1 flex-col border-l border-border/50 bg-background/60 backdrop-blur-sm">
+    <div className="flex min-h-0 w-full flex-1 flex-col overflow-hidden rounded-[22px] border border-border bg-background/55 backdrop-blur-[18px]">
       {/* Header */}
-      <div className="flex shrink-0 items-center gap-2 border-b border-border/50 px-4 py-3">
-        <MessageSquare className="h-4 w-4 text-muted-foreground" />
-        <span className="text-sm font-medium">聊天</span>
+      <div className="flex min-h-[52px] shrink-0 items-center gap-2 border-b border-border px-3.5 py-0">
+        <span className="grid h-7 w-7 place-items-center rounded-[10px] border border-primary/15 bg-primary/[0.07] text-[#f3d79e]">
+          <MessageSquare className="h-[15px] w-[15px]" />
+        </span>
+        <span className="text-sm font-bold text-foreground">聊天</span>
       </div>
 
       {/* Messages */}
@@ -70,7 +72,7 @@ export function ChatPanel() {
         >
           <div className="py-3">
             {messages.length === 0 ? (
-              <p className="text-center text-sm text-muted-foreground/30 py-8">还没有消息，开始聊天吧~</p>
+              <p className="py-8 text-center text-sm text-muted-foreground/40">还没有消息，开始聊天吧~</p>
             ) : (
               messages.map((msg) => (
                 <ChatMessage key={msg.id} message={msg} isOwnMessage={msg.userId === currentUser?.id} />
@@ -95,7 +97,7 @@ export function ChatPanel() {
       </div>
 
       {/* Input */}
-      <div className="flex shrink-0 gap-2 border-t border-border/50 px-3 py-3">
+      <div className="flex shrink-0 gap-2 border-t border-border p-3">
         <Input
           placeholder="输入消息..."
           value={input}

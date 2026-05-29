@@ -13,10 +13,10 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Yueby/music-together/stargazers"><img src="https://img.shields.io/github/stars/Yueby/music-together?style=flat&logo=github" alt="Stars"></a>
-  <a href="https://github.com/Yueby/music-together/network/members"><img src="https://img.shields.io/github/forks/Yueby/music-together?style=flat&logo=github" alt="Forks"></a>
-  <a href="https://github.com/Yueby/music-together/issues"><img src="https://img.shields.io/github/issues/Yueby/music-together?style=flat&logo=github" alt="Issues"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/github/license/Yueby/music-together?style=flat" alt="License"></a>
+  <a href="https://github.com/Madokamaes/music-together/stargazers"><img src="https://img.shields.io/github/stars/Madokamaes/music-together?style=flat&logo=github" alt="Stars"></a>
+  <a href="https://github.com/Madokamaes/music-together/network/members"><img src="https://img.shields.io/github/forks/Madokamaes/music-together?style=flat&logo=github" alt="Forks"></a>
+  <a href="https://github.com/Madokamaes/music-together/issues"><img src="https://img.shields.io/github/issues/Madokamaes/music-together?style=flat&logo=github" alt="Issues"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/Madokamaes/music-together?style=flat" alt="License"></a>
 </p>
 
 <p align="center">
@@ -71,7 +71,7 @@
 ### Install & Develop
 
 ```bash
-git clone https://github.com/Yueby/music-together.git
+git clone https://github.com/Madokamaes/music-together.git
 cd music-together
 pnpm install
 pnpm dev
@@ -86,7 +86,7 @@ Single-image Docker deployment:
 ```bash
 docker run -d --name music-together --restart unless-stopped \
   -p 3001:3001 \
-  ghcr.io/yueby/music-together:latest
+  ghcr.io/madokamaes/music-together:latest
 ```
 
 > If host port `3001` is already in use, change the left side of `-p <host-port>:<container-port>`, for example `-p 8080:3001`.
@@ -99,7 +99,7 @@ In default auto mode, the frontend connects back to the current origin automatic
 docker run -d --name music-together --restart unless-stopped \
   -p 3001:3001 \
   -e CLIENT_URL=https://music.example.com \
-  ghcr.io/yueby/music-together:latest
+  ghcr.io/madokamaes/music-together:latest
 ```
 
 > `CLIENT_URL` is mainly for explicit whitelist mode or separated frontend/backend deployments. In default auto mode, you usually do not need to set it manually.

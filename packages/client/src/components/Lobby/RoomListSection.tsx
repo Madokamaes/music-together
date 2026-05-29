@@ -13,8 +13,8 @@ interface RoomListSectionProps {
 export function RoomListSection({ rooms, isLoading, onRoomClick }: RoomListSectionProps) {
   return (
     <>
-      <div className="mb-4">
-        <h2 className="text-lg font-semibold text-foreground/80">
+      <div className="mb-3.5 flex items-end justify-between gap-4">
+        <h2 className="text-[17px] font-semibold tracking-[-0.02em] text-foreground">
           活跃房间
           {!isLoading && rooms.length > 0 && (
             <span className="ml-2 text-sm font-normal text-muted-foreground">({rooms.length})</span>
@@ -23,9 +23,9 @@ export function RoomListSection({ rooms, isLoading, onRoomClick }: RoomListSecti
       </div>
 
       {isLoading ? (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="flex flex-col gap-3 rounded-xl border border-border bg-card p-5">
+            <div key={i} className="mt-card flex flex-col gap-3 rounded-[22px] p-4">
               <div className="space-y-2">
                 <Skeleton className="h-5 w-2/3" />
                 <Skeleton className="h-3 w-1/2" />
@@ -42,16 +42,18 @@ export function RoomListSection({ rooms, isLoading, onRoomClick }: RoomListSecti
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.25 }}
-          className="flex flex-col items-center gap-4 rounded-xl border border-dashed border-border bg-card/50 px-8 py-16 text-center"
+          className="flex flex-col items-center gap-3 rounded-[22px] border border-dashed border-[rgb(240_223_195/20%)] bg-white/[0.035] px-6 py-[42px] text-center text-muted-foreground"
         >
-          <Music className="h-10 w-10 text-muted-foreground/25" />
+          <div className="mt-icon-box h-14 w-14 text-2xl">
+            <Music className="h-7 w-7" />
+          </div>
           <div>
-            <p className="text-base font-medium text-foreground/60">还没有活跃的房间</p>
+            <p className="text-base font-medium text-foreground/80">还没有活跃的房间</p>
             <p className="mt-1 text-sm text-muted-foreground">创建一个房间，邀请朋友一起听歌</p>
           </div>
         </motion.div>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {rooms.map((room, i) => (
             <RoomCard key={room.id} room={room} index={i} onClick={() => onRoomClick(room)} />
           ))}

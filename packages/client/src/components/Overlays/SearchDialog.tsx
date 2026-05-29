@@ -171,16 +171,17 @@ export function SearchDialog({ open, onOpenChange, onAddToQueue, onInsertAfterCu
 
   return (
     <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
-      <ResponsiveDialogContent className="flex h-[70vh] flex-col overflow-hidden sm:h-auto sm:max-h-[80vh] sm:max-w-2xl">
-        <ResponsiveDialogHeader>
-          <div className="flex items-center gap-3">
-            <ResponsiveDialogTitle className="shrink-0">
+      <ResponsiveDialogContent className="mt-card flex h-[70vh] flex-col overflow-hidden rounded-[22px] p-0 sm:h-auto sm:max-h-[80vh] sm:max-w-2xl [&>button]:top-4 [&>button]:right-4">
+        <ResponsiveDialogHeader className="border-b border-border p-4">
+          <div className="flex items-center justify-between gap-3">
+            <ResponsiveDialogTitle className="flex shrink-0 items-center gap-2">
+              <Search className="h-4 w-4 text-primary" />
               {selectedAlbum ? selectedAlbum.name : '搜索点歌'}
             </ResponsiveDialogTitle>
             {!selectedAlbum && (
-              <div ref={sourceContainerRef} className="bg-muted/50 relative flex items-center rounded-lg p-0.5">
+              <div ref={sourceContainerRef} className="relative flex items-center gap-[3px] rounded-[13px] border border-border bg-white/[0.045] p-[3px] backdrop-blur-xl">
                 <motion.div
-                  className={cn('absolute inset-y-0.5 rounded-md', PLATFORM_ACTIVE[source])}
+                  className={cn('absolute inset-y-[3px] rounded-[10px]', PLATFORM_ACTIVE[source])}
                   animate={{ left: pillStyle.left, width: pillStyle.width }}
                   transition={{ type: 'spring', bounce: 0.15, duration: 0.3 }}
                 />
@@ -189,7 +190,7 @@ export function SearchDialog({ open, onOpenChange, onAddToQueue, onInsertAfterCu
                     key={s.id}
                     data-source={s.id}
                     className={cn(
-                      'relative z-10 rounded-md px-2.5 py-0.5 text-xs font-medium transition-colors',
+                      'relative z-10 rounded-[10px] px-2.5 py-1.5 text-xs font-medium transition-colors',
                       source === s.id ? PLATFORM_TEXT[s.id] : 'text-muted-foreground hover:text-foreground',
                     )}
                     onClick={() => {
@@ -206,7 +207,7 @@ export function SearchDialog({ open, onOpenChange, onAddToQueue, onInsertAfterCu
           </div>
         </ResponsiveDialogHeader>
 
-        <ResponsiveDialogBody className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
+        <ResponsiveDialogBody className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden p-4">
           {selectedAlbum ? (
             <PlaylistDetail
               playlist={selectedAlbum}
@@ -232,10 +233,10 @@ export function SearchDialog({ open, onOpenChange, onAddToQueue, onInsertAfterCu
                   setAddedIds(new Set())
                 }}
               >
-                <TabsList className="w-full">
-                  <TabsTrigger value="song" className="flex-1 text-xs sm:text-sm">单曲</TabsTrigger>
-                  <TabsTrigger value="album" className="flex-1 text-xs sm:text-sm">专辑</TabsTrigger>
-                  <TabsTrigger value="playlist" className="flex-1 text-xs sm:text-sm">歌单</TabsTrigger>
+                <TabsList className="w-full rounded-[13px] border border-border bg-white/[0.045] p-[3px]">
+                  <TabsTrigger value="song" className="flex-1 rounded-[10px] text-xs sm:text-sm">单曲</TabsTrigger>
+                  <TabsTrigger value="album" className="flex-1 rounded-[10px] text-xs sm:text-sm">专辑</TabsTrigger>
+                  <TabsTrigger value="playlist" className="flex-1 rounded-[10px] text-xs sm:text-sm">歌单</TabsTrigger>
                 </TabsList>
               </Tabs>
 
@@ -276,7 +277,7 @@ export function SearchDialog({ open, onOpenChange, onAddToQueue, onInsertAfterCu
                     emptyMessage="暂无结果，换个关键词试试"
                   />
                 ) : (
-                  <div className="min-h-0 flex-1 overflow-y-auto rounded-md border p-2">
+                  <div className="min-h-0 flex-1 overflow-y-auto rounded-2xl border border-border/60 bg-black/10 p-2">
                     {loading && results.length === 0 ? (
                       <div className="flex h-full items-center justify-center">
                         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -291,7 +292,7 @@ export function SearchDialog({ open, onOpenChange, onAddToQueue, onInsertAfterCu
                         {(results as Playlist[]).map((album, index) => (
                           <button
                             key={`${album.id}-${index}`}
-                            className="hover:bg-accent flex w-full min-w-0 items-center gap-3 overflow-hidden rounded-lg p-2 text-left transition-colors"
+                            className="flex w-full min-w-0 items-center gap-3 overflow-hidden rounded-2xl p-2 text-left transition-colors hover:bg-primary/10"
                             onClick={() => handleSelectAlbum(album)}
                           >
                             {album.cover ? (
@@ -302,8 +303,8 @@ export function SearchDialog({ open, onOpenChange, onAddToQueue, onInsertAfterCu
                                 loading="lazy"
                               />
                             ) : (
-                              <div className="bg-muted flex h-12 w-12 shrink-0 items-center justify-center rounded-md">
-                                <ListMusic className="text-muted-foreground h-5 w-5" />
+                              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white/5">
+                                <ListMusic className="h-5 w-5 text-primary/70" />
                               </div>
                             )}
                             <div className="min-w-0 flex-1">
@@ -331,9 +332,9 @@ export function SearchDialog({ open, onOpenChange, onAddToQueue, onInsertAfterCu
                   </div>
                 )
               ) : (
-                <div className="min-h-0 flex-1 overflow-y-auto rounded-md border">
+                <div className="min-h-0 flex-1 overflow-y-auto rounded-2xl border border-border/60 bg-black/10">
                   <div className="flex h-48 flex-col items-center justify-center gap-2 text-muted-foreground">
-                    <Music2 className="h-8 w-8" />
+                    <Music2 className="h-8 w-8 text-primary/55" />
                     <span className="text-sm">输入关键词开始搜索</span>
                   </div>
                 </div>

@@ -232,13 +232,15 @@ export default function HomePage() {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.2 }}
-      className="flex min-h-screen flex-col bg-background"
+      className="mt-page-surface flex min-h-screen flex-col"
     >
       {/* Header */}
-      <header className="border-b border-border/50 bg-background/95 backdrop-blur-sm">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
+      <header className="sticky top-0 z-20 border-b border-border bg-background/80 backdrop-blur-[22px]">
+        <div className="mx-auto flex min-h-[58px] w-[min(1040px,calc(100%-32px))] items-center justify-between gap-4">
           <div className="flex items-center gap-2.5">
-            <Headphones className="h-5 w-5 text-primary" />
+            <span className="grid h-[34px] w-[34px] place-items-center text-[#f3d79e]">
+              <Headphones className="h-5 w-5" />
+            </span>
             <span className="text-base font-semibold tracking-tight text-foreground">Music Together</span>
           </div>
           <UserPopover />
@@ -247,7 +249,7 @@ export default function HomePage() {
 
       {/* Main */}
       <main className="flex-1">
-        <div className="mx-auto max-w-5xl px-4 py-8">
+        <div className="mx-auto w-[min(1040px,calc(100%-32px))] py-12 sm:py-12">
           <HeroSection />
 
           <ActionCards
@@ -258,37 +260,37 @@ export default function HomePage() {
             actionLoading={actionLoading}
           />
 
-          <Separator className="mb-8" />
+          <Separator className="mt-soft-divider mb-6 mt-8 bg-transparent" />
 
           <RoomListSection rooms={rooms} isLoading={isLoading} onRoomClick={handleRoomClick} />
         </div>
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-border/50">
-        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-2 px-4 py-4">
+      <footer className="mt-[38px] border-t border-border bg-transparent">
+        <div className="mx-auto flex min-h-14 w-[min(1040px,calc(100%-32px))] flex-wrap items-center justify-between gap-3 py-4">
           <span className="text-xs text-muted-foreground">
             Music Together · Made by Yueby ·{' '}
             <a
-              href="https://github.com/Yueby/music-together/blob/main/package.json"
+              href="https://github.com/Madokamaes/music-together/blob/main/package.json"
               target="_blank"
               rel="noopener noreferrer"
-              className="relative inline-flex items-center transition-colors hover:text-foreground"
+              className="relative inline-flex items-center text-primary transition-colors hover:text-[#f3d79e]"
             >
               v{__APP_VERSION__}
               {hasUpdate && (
                 <span
-                  className="absolute -right-2 -top-1 h-2 w-2 rounded-full bg-red-500"
+                  className="absolute -right-2 -top-1 h-2 w-2 rounded-full bg-destructive"
                   title="有新版本可用，刷新页面以更新"
                 />
               )}
             </a>
           </span>
           <a
-            href="https://github.com/Yueby/music-together"
+            href="https://github.com/Madokamaes/music-together"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+            className="flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-primary"
           >
             <Github className="h-3.5 w-3.5" />
             GitHub

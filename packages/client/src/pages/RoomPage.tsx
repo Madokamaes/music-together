@@ -306,7 +306,7 @@ export default function RoomPage() {
         exit={{ opacity: 0 }}
         transition={{ duration: 0.2 }}
       >
-        <div className="flex h-dvh flex-col bg-background">
+        <div className="mt-page-surface flex h-dvh flex-col overflow-hidden">
           <RoomHeader
             onOpenSearch={() => setSearchOpen(true)}
             onOpenSettings={() => setSettingsOpen(true)}
@@ -314,8 +314,8 @@ export default function RoomPage() {
             onLeaveRoom={handleLeaveRoom}
           />
 
-          <div className="flex min-h-0 flex-1 overflow-hidden p-2 md:p-3 lg:p-4">
-            <div className="min-w-0 flex-1 overflow-hidden rounded-2xl">
+          <div className="flex min-h-0 flex-1 gap-3 overflow-hidden p-2 md:p-3 lg:p-3">
+            <div className="mt-player-stage min-w-0 flex-1 overflow-hidden">
               <AudioPlayer
                 onPlay={play}
                 onPause={pause}
@@ -332,10 +332,10 @@ export default function RoomPage() {
             <div
               className={cn(
                 'hidden h-full shrink-0 overflow-hidden transition-[width] duration-200 ease-out md:block',
-                chatOpen ? 'w-[320px] pl-3' : 'w-0',
+                chatOpen ? 'w-[330px]' : 'w-0',
               )}
             >
-              <div className="flex h-full w-[320px] flex-col">{chatOpen && <ChatPanel />}</div>
+              <div className="flex h-full w-[330px] flex-col">{chatOpen && <ChatPanel />}</div>
             </div>
           </div>
 

@@ -36,25 +36,25 @@ export function VoteBanner({ vote, onCastVote }: VoteBannerProps) {
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -8 }}
-        className="w-full rounded-xl bg-white/10 px-4 py-3 backdrop-blur-md"
+        className="w-full rounded-2xl border border-border/60 bg-popover/85 px-4 py-3 backdrop-blur-md"
       >
         {/* Title */}
-        <div className="mb-2 text-center text-sm font-medium text-white/90">
-          <span className="text-white/60">{vote.initiatorNickname}</span> 发起投票：
+        <div className="mb-2 text-center text-sm font-medium text-foreground">
+          <span className="text-primary/80">{vote.initiatorNickname}</span> 发起投票：
           {getVoteActionLabel(vote.action, vote.payload)}
         </div>
 
         {/* Progress bar (time remaining) */}
-        <div className="mb-2 h-1 w-full overflow-hidden rounded-full bg-white/10">
+        <div className="mb-2 h-1 w-full overflow-hidden rounded-full bg-primary/15">
           <div
-            className="h-full rounded-full bg-white/40 transition-[width] duration-100 ease-linear"
+            className="h-full rounded-full bg-primary/70 transition-[width] duration-100 ease-linear"
             style={{ width: `${progressPercent}%` }}
           />
         </div>
 
         {/* Votes count + buttons */}
         <div className="flex items-center justify-between">
-          <div className="text-xs text-white/60">
+          <div className="text-xs text-muted-foreground">
             {approveCount}/{vote.requiredVotes} 赞成
             {rejectCount > 0 && <span className="ml-2">{rejectCount} 反对</span>}
           </div>
@@ -81,7 +81,7 @@ export function VoteBanner({ vote, onCastVote }: VoteBannerProps) {
               </Button>
             </div>
           ) : (
-            <span className="text-xs text-white/40">已投票</span>
+            <span className="text-xs text-muted-foreground/70">已投票</span>
           )}
         </div>
       </motion.div>

@@ -35,8 +35,10 @@ export const ChatMessage = memo(function ChatMessage({ message, isOwnMessage }: 
       </div>
       <div
         className={cn(
-          'max-w-[80%] rounded-xl px-3 py-2 text-sm break-words',
-          isOwnMessage ? 'bg-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground',
+          'max-w-[88%] rounded-2xl px-[11px] py-[9px] text-[13px] leading-[1.55] break-words',
+          isOwnMessage
+            ? 'border border-primary/20 bg-primary/[0.08] text-foreground'
+            : 'border border-border bg-white/[0.045] text-muted-foreground',
         )}
       >
         {message.content}

@@ -167,11 +167,11 @@ export function QueueDrawer({ open, onOpenChange, onRemoveFromQueue, onReorderQu
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange} direction={isMobile ? 'bottom' : 'right'}>
-      <DrawerContent className={cn('flex flex-col p-0', isMobile && 'h-[70vh]')}>
-        <DrawerHeader className="shrink-0 border-b px-4 py-3">
+      <DrawerContent className={cn('mt-card flex flex-col rounded-[22px] p-0', isMobile && 'h-[70vh]')}>
+        <DrawerHeader className="shrink-0 border-b border-border/60 px-4 py-3">
           <div className="flex items-center justify-between">
             <DrawerTitle className="flex items-center gap-2 text-base">
-              <Music className="h-4 w-4" />
+              <Music className="h-4 w-4 text-primary" />
               播放列表 ({queue.length})
             </DrawerTitle>
             <div className="flex items-center gap-1">
@@ -230,8 +230,8 @@ export function QueueDrawer({ open, onOpenChange, onRemoveFromQueue, onReorderQu
                   >
                     <div
                       className={cn(
-                        'group relative flex h-full items-center gap-2 rounded-lg px-2 transition-colors hover:bg-accent/50',
-                        currentTrack?.id === track.id && 'bg-primary/10',
+                        'group relative flex h-full items-center gap-2 rounded-[15px] px-2 transition-colors hover:bg-primary/10',
+                        currentTrack?.id === track.id && 'bg-primary/[0.08] text-foreground',
                       )}
                     onClick={() => {
                       if (isTouch) {
@@ -260,11 +260,11 @@ export function QueueDrawer({ open, onOpenChange, onRemoveFromQueue, onReorderQu
                       ) : null}
                       <div
                         className={cn(
-                          'flex h-9 w-9 items-center justify-center rounded bg-muted',
+                          'flex h-9 w-9 items-center justify-center rounded-xl bg-white/5',
                           track.cover && 'hidden',
                         )}
                       >
-                        <Music className="h-4 w-4 text-muted-foreground" />
+                        <Music className="h-4 w-4 text-primary/70" />
                       </div>
                       {track.source && SOURCE_STYLE[track.source] && (
                         <span
@@ -303,7 +303,7 @@ export function QueueDrawer({ open, onOpenChange, onRemoveFromQueue, onReorderQu
                     <div
                       className={cn(
                         'absolute right-1 top-1/2 z-20 flex -translate-y-1/2 items-center gap-0.5',
-                        'rounded-md border border-border/50 bg-popover px-1 py-0.5 shadow-md backdrop-blur-md',
+                        'rounded-full border border-border/60 bg-popover/95 px-1 py-0.5 shadow-md backdrop-blur-md',
                         'opacity-0 pointer-events-none transition-opacity',
                         'group-hover:opacity-100 group-hover:pointer-events-auto',
                         'group-focus-within:opacity-100 group-focus-within:pointer-events-auto',

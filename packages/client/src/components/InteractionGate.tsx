@@ -34,22 +34,24 @@ export function InteractionGate({ onStart, roomName, hasPassword, passwordError 
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background px-4">
+    <div className="mt-page-surface fixed inset-0 z-50 flex items-center justify-center px-4">
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-        className="flex w-full max-w-sm flex-col items-center gap-6 rounded-2xl border border-border bg-card p-10 shadow-lg"
+        className="mt-card-strong flex w-full max-w-[390px] flex-col items-center gap-6 rounded-[22px] p-[30px] text-center"
       >
         <motion.div
           animate={prefersReducedMotion ? {} : { rotate: [0, 5, -5, 0] }}
           transition={prefersReducedMotion ? {} : { duration: 4, repeat: Infinity, ease: 'easeInOut' }}
         >
-          <Headphones className="h-16 w-16 text-primary" />
+          <span className="mx-auto grid h-[68px] w-[68px] place-items-center rounded-3xl border border-primary/20 bg-[radial-gradient(circle,rgb(243_215_158/24%),transparent_54%),rgb(227_183_108/7.5%)] text-[#f3d79e] shadow-[0_0_42px_rgb(227_183_108/14%)]">
+            <Headphones className="h-9 w-9" />
+          </span>
         </motion.div>
 
         <div className="flex flex-col items-center gap-1.5">
-          <h2 className="text-xl font-semibold">准备就绪</h2>
+          <h2 className="text-xl font-semibold text-foreground">准备就绪</h2>
           {roomName ? (
             <p className="text-sm text-muted-foreground">即将加入「{roomName}」</p>
           ) : (

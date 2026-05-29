@@ -1,21 +1,40 @@
-name: Build & Push
+name: Build and deploy
 
 on:
   push:
     branches: [main]
+    paths:
+      - 'packages/**'
+      - 'Dockerfile'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - '.github/workflows/**'
+      - 'scripts/**'
   workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
+    outputs:
+      image: ${{ steps.image.outputs.image }}
+      image-sha: ${{ steps.image.outputs.image-sha }}
     steps:
       - uses: actions/checkout@v4
 
+      - name: Check deploy script syntax
+        run: bash -n scripts/deploy-production.sh
+
       - name: Set image name to lowercase
-        run: echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY,,}" >> $GITHUB_ENV
+        id: image
+        run: |
+          image="ghcr.io/${GITHUB_REPOSITORY,,}"
+          echo "image=$image" >> "$GITHUB_OUTPUT"
+          echo "image-sha=$image:${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
 
       - uses: docker/login-action@v3
         with:
@@ -29,6 +48,49 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ env.IMAGE }}:latest,${{ env.IMAGE }}:${{ github.sha }}
+          tags: ${{ steps.image.outputs.image }}:latest,${{ steps.image.outputs.image-sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    concurrency:
+      group: music-together-production-deploy
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure SSH
+        env:
+          MUSIC_SSH_PRIVATE_KEY: ${{ secrets.MUSIC_SSH_PRIVATE_KEY }}
+          MUSIC_SSH_KNOWN_HOSTS: ${{ secrets.MUSIC_SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          test -n "$MUSIC_SSH_PRIVATE_KEY"
+          test -n "$MUSIC_SSH_KNOWN_HOSTS"
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$MUSIC_SSH_PRIVATE_KEY" > ~/.ssh/music_deploy_key
+          chmod 600 ~/.ssh/music_deploy_key
+          printf '%s\n' "$MUSIC_SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Deploy over SSH
+        env:
+          MUSIC_SSH_HOST: ${{ vars.MUSIC_SSH_HOST }}
+          MUSIC_SSH_USER: ${{ vars.MUSIC_SSH_USER }}
+          MUSIC_SSH_PORT: ${{ vars.MUSIC_SSH_PORT }}
+          MUSIC_APP_PORT: ${{ vars.MUSIC_APP_PORT }}
+        run: |
+          set -euo pipefail
+          host="${MUSIC_SSH_HOST:-47.94.44.206}"
+          user="${MUSIC_SSH_USER:-root}"
+          port="${MUSIC_SSH_PORT:-22}"
+          app_port="${MUSIC_APP_PORT:-3001}"
+
+          ssh -i ~/.ssh/music_deploy_key \
+            -p "$port" \
+            -o ServerAliveInterval=30 \
+            -o ServerAliveCountMax=10 \
+            "$user@$host" \
+            'bash -s --' "${{ needs.build.outputs.image-sha }}" "$app_port" < scripts/deploy-production.sh

@@ -32,10 +32,6 @@ corepack pnpm dev
 
 可以复制 `.env.example` 为 `.env` 后调整服务端配置。如果当前 shell 找不到裸 `pnpm`，请直接使用 `corepack pnpm`。
 
-## 最近更新
-
-个人使用的 **幻想音乐杯** 已迁移到独立仓库 [Madokamaes/music-cup](https://github.com/Madokamaes/music-cup)，独立运行于 <http://47.94.44.206:3002/>。Music Together 首页只保留固定外部入口，不再构建、挂载或部署其页面、API 与本地曲库。
-
 ## 部署
 
 项目默认构建为单个 Docker 镜像，由 Express 同时提供 REST API、Socket.IO 和前端 SPA。仓库中的 GitHub Actions 会在 `main` 分支相关文件更新时构建镜像、推送至 GHCR，并通过 SSH 执行 `scripts/deploy-production.sh`。

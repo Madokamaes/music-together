@@ -5,6 +5,7 @@ import { NicknameDialog } from '@/components/Lobby/NicknameDialog'
 import { PasswordDialog } from '@/components/Lobby/PasswordDialog'
 import { RoomListSection } from '@/components/Lobby/RoomListSection'
 import { UserPopover } from '@/components/Lobby/UserPopover'
+import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { useLobby } from '@/hooks/useLobby'
 import { unlockAudio } from '@/lib/audioUnlock'
@@ -15,7 +16,7 @@ import { useRoomStore } from '@/stores/roomStore'
 import { useChatStore } from '@/stores/chatStore'
 import { useVersionCheck } from '@/hooks/useVersionCheck'
 import { EVENTS, ERROR_CODE, type RoomListItem, type RoomState } from '@music-together/shared'
-import { Github, Headphones } from 'lucide-react'
+import { Github, Headphones, Trophy } from 'lucide-react'
 import { motion } from 'motion/react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -251,7 +252,15 @@ export default function HomePage() {
             </span>
             <span className="text-base font-semibold tracking-tight text-foreground">Music Together</span>
           </div>
-          <UserPopover />
+          <div className="flex items-center gap-2">
+            <Button asChild variant="ghost" size="sm" className="text-xs">
+              <a href="http://47.94.44.206:3002/" aria-label="打开幻想音乐杯">
+                <Trophy />
+                <span className="hidden sm:inline">幻想音乐杯</span>
+              </a>
+            </Button>
+            <UserPopover />
+          </div>
         </div>
       </header>
 

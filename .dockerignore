@@ -8,3 +8,7 @@ docs
 .env
 screenshots
 *.md
+data
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal

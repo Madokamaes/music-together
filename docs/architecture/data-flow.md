@@ -22,6 +22,7 @@ graph TB
 
   subgraph external [External]
     Meting["@meting/core 音乐源"]
+    Netease["网易云非官方 API"]
   end
 
   Pages --> Hooks
@@ -38,6 +39,8 @@ graph TB
   Express --> Meting
   Services --> Meting
 ```
+
+幻想音乐杯是独立部署的外部项目：Music Together 首页通过固定链接指向 `http://47.94.44.206:3002/`，不共享 Socket、身份 Cookie、API、数据库或媒体目录。
 
 ## Socket 事件清单
 

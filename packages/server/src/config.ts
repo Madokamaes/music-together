@@ -17,6 +17,7 @@ const envSchema = z.object({
   REJOIN_TTL_MS: z.coerce.number().int().positive().default(TIMING.ROOM_GRACE_PERIOD_MS),
   IDENTITY_COOKIE_SECURE: z.enum(['true', 'false']).optional(),
   AUTO_FALLBACK_ENABLED: z.enum(['true', 'false']).default('true'),
+  LISTENING_STATS_RETENTION_DAYS: z.coerce.number().int().positive().default(90),
   DATA_DIR: z.string().default(join(process.cwd(), 'data')),
   DATABASE_PATH: z.string().optional(),
   AVATAR_DIR: z.string().optional(),
@@ -51,6 +52,9 @@ export const config = {
   },
   autoFallback: {
     enabled: env.AUTO_FALLBACK_ENABLED === 'true',
+  },
+  listeningStats: {
+    retentionDays: env.LISTENING_STATS_RETENTION_DAYS,
   },
   persistence: {
     dataDir,

@@ -19,10 +19,12 @@ import { initDatabase, closeDatabase } from './persistence/database.js'
 import { runMigrations } from './persistence/migrations.js'
 import { clearAllTimers } from './services/roomLifecycleService.js'
 import { initializeRoomsFromPersistence } from './services/roomService.js'
+import { listeningStatsRepo } from './repositories/listeningStatsRepository.js'
 import { logger } from './utils/logger.js'
 
 initDatabase()
 runMigrations()
+listeningStatsRepo.cleanupExpiredEvents()
 initializeRoomsFromPersistence()
 
 const app = express()

@@ -6,7 +6,7 @@
 # 安装依赖
 pnpm install
 
-# 启动前后端开发服务器（默认同时开放到局域网）
+# 启动前端与后端（默认同时开放前端到局域网）
 pnpm dev
 
 # 其他设备通过 http://你的局域网IP:5173 访问前端
@@ -21,10 +21,10 @@ pnpm dev:server
 
 ## 端口
 
-| 服务                       | 默认端口 |
-| -------------------------- | -------- |
-| 前端 (Vite)                | 5173     |
-| 后端 (Express + Socket.IO) | 3001     |
+| 服务                         | 默认端口 |
+| ---------------------------- | -------- |
+| 前端 (Vite)                  | 5173     |
+| 后端 (Express + Socket.IO)   | 3001     |
 
 ## 环境变量
 
@@ -33,7 +33,7 @@ pnpm dev:server
 | 变量           | 说明                     | 默认值                  |
 | -------------- | ------------------------ | ----------------------- |
 | `PORT`         | 服务端口                 | `3001`                  |
-| `CLIENT_URL`   | 客户端地址（CORS）       | `http://localhost:5173` |
+| `CLIENT_URL`   | 客户端地址（CORS）       | 自动模式                |
 | `CORS_ORIGINS` | 额外 CORS 源（逗号分隔） | 空                      |
 
 ## 客户端 (Vite 环境变量)
@@ -50,7 +50,7 @@ pnpm build
 
 # 前端产物 → packages/client/dist/
 # 后端产物 → packages/server/dist/
-# shared 包无构建步骤，直接作为 TS 源码引用
+# shared 产物 → packages/shared/dist/
 ```
 
 ## 添加 shadcn/ui 组件
@@ -64,8 +64,8 @@ npx shadcn@latest add <component-name>
 
 ## 注意事项
 
-- 服务端数据全部存储在内存中，重启后丢失
-- 无数据库、无服务端持久化（客户端 Cookie 通过 localStorage 持久化）
+- 房间实时状态运行于内存，但房间、成员、聊天、用户资料和听歌统计会写入 SQLite
+- 幻想音乐杯是独立项目，本仓库只在首页固定链接到 `http://47.94.44.206:3002/`
 - 用户身份基于持久化 nanoid（localStorage）+ 昵称（无注册/登录账号系统）；`socket.id` 仅用于 Socket 传输层映射
 - 平台认证（网易云/酷狗 QR 扫码登录、QQ 手动 Cookie）用于 VIP 歌曲访问，Cookie 作用域为房间级。QR 登录状态码在 `shared/constants.ts` 中定义为 `QR_STATUS`（800-803），前后端共用，`QrLoginDialog` 无需区分平台
 - Auth Cookie 持久化策略：**只有用户主动登出（`useAuth.logout()`）才删除 localStorage 中的 cookie**。`useAuthSync` 在收到 `AUTH_SET_COOKIE_RESULT` 失败时（无论 `reason` 是 `expired` 还是 `error`）仅通过 toast 反馈，永远不删除 cookie，确保下次进房间时自动重试。`LoginSection` 在 localStorage 有 cookie 但服务端未确认时显示 "验证登录中…" 乐观状态

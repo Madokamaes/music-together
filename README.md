@@ -42,6 +42,9 @@ corepack pnpm dev
 docker run -d \
   --name music-together \
   --restart unless-stopped \
+  --log-driver local \
+  --log-opt max-size=10m \
+  --log-opt max-file=3 \
   -p 3001:3001 \
   -v music-together-data:/app/data \
   -e DATA_DIR=/app/data \
@@ -58,6 +61,9 @@ docker run -d \
 - `DATA_DIR=/app/data`
 - `DATABASE_PATH=/app/data/music-together.sqlite`
 - `AVATAR_DIR=/app/data/avatars`
+- `LISTENING_STATS_RETENTION_DAYS=90`（默认，过期听歌统计会自动清理）
+
+音乐音频、歌词和封面不会写入 `/app/data`；服务器只持久化 SQLite 数据库与当前用户头像。自动部署将容器日志限制为 30 MiB，并只保留当前镜像和两个历史镜像。项目不创建自动本地备份；如需外部备份，备份目录应位于 `/app/data` volume 之外，并设置保留上限。
 
 默认情况下，前端按当前页面 origin 连接后端，服务端 CORS 处于自动模式。需要显式白名单时再配置 `CLIENT_URL` 和 `CORS_ORIGINS`。
 

@@ -4,26 +4,29 @@
 
 采用**纯 Node.js 单镜像**方案：Express 同时托管前端 SPA 静态文件和后端 API/WebSocket，无需 Nginx。
 
+```text
+Docker 容器 :3001
+├── /                 → client/dist 静态文件（Vite 产物）
+├── /api/*            → Music Together REST API
+├── /uploads/avatars  → 上传头像静态文件（来自 /app/data/avatars）
+└── /socket.io/*      → WebSocket
 ```
-Docker 容器 (:3001)
-├── / 静态文件        → client/dist（Vite 产物）
-├── /api/*           → REST API
-├── /uploads/avatars → 上传头像静态文件（来自 /app/data/avatars）
-└── /socket.io/*     → WebSocket
-```
+
+幻想音乐杯是独立项目，运行于 `http://47.94.44.206:3002/`。它拥有独立的仓库、容器、媒体目录和部署工作流；Music Together 仅在首页提供固定外部链接。
 
 ## CI/CD 流程
 
-1. **push 到 main** → GitHub Actions 构建 Docker 镜像 → 推送到 GHCR（`ghcr.io`）
-2. **服务器上** Watchtower 每 5 分钟检查镜像更新 → 自动拉取并重启容器
+1. push 到 `main` → GitHub Actions 构建 Docker 镜像 → 推送到 GHCR（`ghcr.io`）
+2. `deploy` job 通过 SSH 把镜像 SHA 和公开端口传给 `scripts/deploy-production.sh`
+3. 部署脚本串行加锁、拉取镜像、重建容器并检查本机 3001 健康状态
 
-零人工干预，GitHub 零额外 Secrets（使用自带的 `GITHUB_TOKEN`）。
+GHCR 使用仓库自带的 `GITHUB_TOKEN`，远程部署使用 `MUSIC_SSH_PRIVATE_KEY` 与 `MUSIC_SSH_KNOWN_HOSTS` Secrets，以及可选的主机、用户、SSH 端口和应用端口 Variables。
 
 ## Docker 多阶段构建
 
 - **阶段 1（deps）**：`pnpm install --frozen-lockfile` 安装全部依赖
-- **阶段 2（build）**：分别构建 shared、server（tsc）、client（vite build）
-- **阶段 3（production）**：仅安装 server 生产依赖（`--filter @music-together/server...`），复制构建产物
+- **阶段 2（build）**：依次构建 shared、server、client
+- **阶段 3（production）**：仅安装 server 及其 workspace 生产依赖，并复制三个包的构建产物
 
 ## 持久化数据
 
@@ -33,12 +36,21 @@ Docker 容器 (:3001)
 - `DATABASE_PATH=/app/data/music-together.sqlite`（默认）
 - `AVATAR_DIR=/app/data/avatars`（默认）
 
-生产容器必须挂载 Docker volume 到 `/app/data`，否则 `docker rm -f` 或 Watchtower 重建容器会删除数据库和头像文件。备份时同时备份 SQLite 数据库文件、WAL/SHM 文件和 `avatars/` 目录。
+生产容器必须挂载 Docker volume 到 `/app/data`，否则部署脚本重建容器会删除数据库和头像文件。
+
+## 磁盘边界与备份
+
+- 音乐文件不会下载或缓存到服务器磁盘：服务仅返回上游播放 URL，歌词与封面缓存均在进程内存中；封面代理只在请求期间转发响应。
+- 头像是唯一上传到 `/app/data/avatars` 的文件。每个用户只保留当前头像，替换或删除头像时会删除旧文件。
+- 听歌统计默认保留 90 天；可用 `LISTENING_STATS_RETENTION_DAYS` 调整。过期事件及其成员快照会在启动和随后最多每 6 小时清理一次。
+- 生产容器使用 Docker `local` 日志驱动，并限制为 3 个 10 MiB 文件；部署后只保留当前镜像和两个历史镜像。
+- 应用不会自动创建本地备份，因此不会因备份累积占满磁盘。若配置外部备份，备份目录必须位于 `/app/data` volume 之外，并由备份任务自行设置保留天数和数量上限。
 
 ## CORS 策略
 
-- `CLIENT_URL` 未设置 → 自动模式，允许所有来源访问（适用于单镜像同域部署、局域网、公网反代）
-- `CLIENT_URL` 显式设置 → 严格白名单模式（适用于前后端分离跨域部署）
+- `CLIENT_URL` 未设置 → 自动模式，允许浏览器报告的来源（适用于单镜像同域部署、局域网、公网反代）
+- `CLIENT_URL` 显式设置 → 严格白名单模式
+- `CORS_ORIGINS` → 额外允许来源，以逗号分隔
 
 ## Identity Cookie 策略
 
@@ -58,28 +70,23 @@ Docker 容器 (:3001)
 
 `packages/server/src/index.ts` 在启动时检测 `client/dist/index.html` 是否存在：
 
-- **存在**（生产环境）：挂载 `express.static` + SPA fallback
-- **不存在**（本地开发）：跳过，零影响
+- **存在**（生产环境）：挂载 `express.static` 与 SPA fallback
+- **不存在**（本地开发）：跳过静态托管，由 Vite 开发服务器提供前端
 
 ## 服务器部署命令
 
 ```bash
-# 创建持久化数据卷
-docker volume create music-together-data
-
-# 启动应用容器
-docker run -d --name music-together --restart unless-stopped \
+docker run -d \
+  --name music-together \
+  --restart unless-stopped \
+  --log-driver local \
+  --log-opt max-size=10m \
+  --log-opt max-file=3 \
   -p 3001:3001 \
   --env-file /opt/music-together/.env \
   -e DATA_DIR=/app/data \
   -v music-together-data:/app/data \
   ghcr.io/<owner>/music-together:latest
-
-# 启动 Watchtower 自动更新
-docker run -d --name watchtower --restart unless-stopped \
-  -v /var/run/docker.sock:/var/run/docker.sock \
-  -e WATCHTOWER_CLEANUP=true \
-  containrrr/watchtower --interval 300 music-together
 ```
 
-如使用 1Panel，创建反向代理网站指向 `127.0.0.1:3001`，启用 WebSocket 和 HTTPS。
+正常生产部署由 GitHub Actions 调用 `scripts/deploy-production.sh` 完成；上述命令仅用于手动恢复或首次验证。使用 1Panel 时，反向代理只需指向 `127.0.0.1:3001`，并启用 WebSocket 和 HTTPS。

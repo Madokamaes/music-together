@@ -85,7 +85,10 @@ Single-image Docker deployment:
 
 ```bash
 docker run -d --name music-together --restart unless-stopped \
+  --log-driver local --log-opt max-size=10m --log-opt max-file=3 \
   -p 3001:3001 \
+  -v music-together-data:/app/data \
+  -e DATA_DIR=/app/data \
   ghcr.io/madokamaes/music-together:latest
 ```
 
@@ -97,7 +100,10 @@ In default auto mode, the frontend connects back to the current origin automatic
 
 ```bash
 docker run -d --name music-together --restart unless-stopped \
+  --log-driver local --log-opt max-size=10m --log-opt max-file=3 \
   -p 3001:3001 \
+  -v music-together-data:/app/data \
+  -e DATA_DIR=/app/data \
   -e CLIENT_URL=https://music.example.com \
   ghcr.io/madokamaes/music-together:latest
 ```
@@ -105,6 +111,8 @@ docker run -d --name music-together --restart unless-stopped \
 > `CLIENT_URL` is mainly for explicit whitelist mode or separated frontend/backend deployments. In default auto mode, you usually do not need to set it manually.
 >
 > If you expose HTTPS through Nginx / Caddy / 1Panel / Lucky, make sure the proxy forwards `X-Forwarded-Proto`, or the server cannot auto-detect whether it should issue Secure cookies.
+
+The server persists only SQLite data and current user avatars in `/app/data`; music audio, lyrics, and cover images are not written to disk. Listening statistics are retained for 90 days by default (`LISTENING_STATS_RETENTION_DAYS`). Deployments cap logs at 30 MiB and retain the current image plus two prior images. The application does not create automatic local backups; keep any external backups outside `/app/data` and configure their retention limit separately.
 
 Push to main triggers GitHub Actions to build and push the image. See [Architecture Docs](docs/PROJECT_ARCHITECTURE.md) for details.
 

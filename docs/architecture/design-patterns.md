@@ -108,6 +108,10 @@ const { socket, isConnected } = useSocketContext()
 - 歌词模式状态在切歌时保持不变，用户手动点击封面切换
 - 桌面端保持左右分栏布局不受影响
 
+## 外部项目边界
+
+幻想音乐杯位于独立仓库 `Madokamaes/music-cup`，并作为独立服务运行在 `http://47.94.44.206:3002/`。Music Together 首页只提供固定外部链接；双方不共享 React 路由、Express API、Socket Provider、数据库、身份 Cookie、媒体目录或部署镜像。
+
 ## 后端模式
 
 ## 分层架构

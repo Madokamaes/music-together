@@ -7,7 +7,7 @@ music-together/
 ├── packages/
 │   ├── client/          # React 前端
 │   ├── server/          # Node.js 后端
-│   └── shared/          # 共享类型与常量
+│   └── shared/          # MusicTogether 共享类型与常量
 ├── docs/                # 项目文档（含本文件 PROJECT_ARCHITECTURE.md）
 ├── package.json         # 根 package（工作区编排）
 ├── pnpm-workspace.yaml  # pnpm 工作区定义
@@ -25,7 +25,7 @@ src/
 ├── index.css                   # 全局样式：Tailwind + 配色变量 + 自定义动画
 │
 ├── pages/                      # 页面级组件
-│   ├── HomePage.tsx            #   大厅：创建/加入房间、房间列表
+│   ├── HomePage.tsx            #   大厅：创建/加入房间、房间列表、幻想音乐杯外部入口
 │   ├── RoomPage.tsx            #   房间：播放器 + 聊天（桌面侧栏/移动端 Drawer） + 覆盖层弹窗
 │   └── NotFoundPage.tsx        #   404 页面
 │
@@ -212,6 +212,10 @@ src/
     ├── logger.ts               #   结构化日志（基于 pino，info/warn/error + JSON context）
     └── roomUtils.ts            #   房间数据转换纯函数（toPublicRoomState / toPublicRoomStateForOwner，密码仅 owner 可见）
 ```
+
+## 外部项目
+
+幻想音乐杯已迁移到独立仓库 <https://github.com/Madokamaes/music-cup>，不属于本工作区目录。Music Together 首页仅固定链接到其独立服务 `http://47.94.44.206:3002/`。
 
 ## packages/shared/src/ — 共享代码
 

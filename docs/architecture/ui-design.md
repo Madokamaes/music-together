@@ -6,6 +6,10 @@
 - **配置**：非 RSC（`"rsc": false`），使用 CSS 变量，Lucide 图标
 - **安装路径**：`@/components/ui/`，工具函数 `@/lib/utils`
 
+## 外部项目视觉边界
+
+幻想音乐杯拥有独立视觉系统并在 `Madokamaes/music-cup` 仓库维护。本项目不加载其样式或组件，首页仅使用现有 Music Together 按钮样式提供固定外部入口。
+
 ## 颜色系统
 
 使用 **oklch 色彩空间**，单一深色主题，CSS 变量直接定义在 `:root`（无亮/暗切换）：

@@ -2,6 +2,10 @@ import { nanoid } from 'nanoid'
 import type { RoomData } from './types.js'
 import type { Track } from '@music-together/shared'
 import { getDatabase } from '../persistence/database.js'
+import { config } from '../config.js'
+
+const CLEANUP_INTERVAL_MS = 6 * 60 * 60 * 1000
+const DAY_MS = 24 * 60 * 60 * 1000
 
 function stripStreamUrl(track: Track): Track {
   const { streamUrl: _streamUrl, ...rest } = track
@@ -9,9 +13,12 @@ function stripStreamUrl(track: Track): Track {
 }
 
 class ListeningStatsRepository {
+  private lastCleanupAt = 0
+
   recordPlaybackStart(room: RoomData, track: Track): void {
     const eventId = nanoid(20)
     const startedAt = Date.now()
+    this.cleanupExpiredEvents(startedAt)
     const sanitizedTrack = stripStreamUrl(track)
     const db = getDatabase()
     const run = db.transaction(() => {
@@ -61,6 +68,22 @@ class ListeningStatsRepository {
       }
     })
     run()
+  }
+
+  cleanupExpiredEvents(now = Date.now()): void {
+    if (now - this.lastCleanupAt < CLEANUP_INTERVAL_MS) return
+
+    const cutoff = now - config.listeningStats.retentionDays * DAY_MS
+    const db = getDatabase()
+    const run = db.transaction(() => {
+      db.prepare(`
+        DELETE FROM listening_event_users
+        WHERE event_id IN (SELECT id FROM listening_events WHERE started_at < ?)
+      `).run(cutoff)
+      db.prepare('DELETE FROM listening_events WHERE started_at < ?').run(cutoff)
+    })
+    run()
+    this.lastCleanupAt = now
   }
 }
 

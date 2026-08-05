@@ -37,6 +37,9 @@ fi
 docker run -d \
   --name "$container_name" \
   --restart unless-stopped \
+  --log-driver local \
+  --log-opt max-size=10m \
+  --log-opt max-file=3 \
   -p "${app_port}:3001" \
   -e DATA_DIR=/app/data \
   -v "${volume_name}:/app/data" \
@@ -45,14 +48,40 @@ docker run -d \
 
 docker ps --filter "name=$container_name"
 
+healthy=false
 for attempt in {1..30}; do
   if curl -fsS "http://127.0.0.1:${app_port}" >/dev/null; then
-    echo "music-together is healthy on port ${app_port}."
-    exit 0
+    healthy=true
+    break
   fi
   sleep 1
 done
 
-echo "music-together health check failed on port ${app_port}." >&2
-docker logs --tail=100 "$container_name" >&2 || true
-exit 1
+if [[ "$healthy" != true ]]; then
+  echo "music-together health check failed on port ${app_port}." >&2
+  docker logs --tail=100 "$container_name" >&2 || true
+  exit 1
+fi
+
+echo "music-together is healthy on port ${app_port}."
+
+# Retain the current image and two previous images from this application only.
+# Old SHA-tagged images otherwise accumulate after every deployment.
+image_repository="${image_ref%:*}"
+current_image_id="$(docker inspect --format '{{.Image}}' "$container_name")"
+mapfile -t image_ids < <(docker image ls --no-trunc --quiet "$image_repository" | sort -u)
+if (( ${#image_ids[@]} > 3 )); then
+  declare -A retained_images=( ["$current_image_id"]=1 )
+  retained_count=0
+  while read -r image_id _created_at; do
+    [[ "$image_id" == "$current_image_id" ]] && continue
+    retained_images["$image_id"]=1
+    ((retained_count += 1))
+    (( retained_count == 2 )) && break
+  done < <(docker image inspect --format '{{.Id}} {{.Created}}' "${image_ids[@]}" | sort -rk2)
+
+  for image_id in "${image_ids[@]}"; do
+    [[ -n "${retained_images[$image_id]:-}" ]] && continue
+    docker image rm "$image_id" >/dev/null || true
+  done
+fi
